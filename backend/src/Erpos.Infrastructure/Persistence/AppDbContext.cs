@@ -224,6 +224,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         b.Entity<TimeEntry>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
     }
 
+    public async Task LockAsync<T>(Guid id, CancellationToken ct = default) where T : class
+    {
+        if (Database.CurrentTransaction == null) return; // no transaction to hold the lock
+        var table = Model.FindEntityType(typeof(T))?.GetTableName() ?? throw new InvalidOperationException($"{typeof(T).Name} is not mapped.");
+        await Database.ExecuteSqlRawAsync($"SELECT Id FROM `{table}` WHERE Id = {{0}} FOR UPDATE", [id.ToString()], ct);
+    }
+
     public async Task<int> NextSequenceAsync(string key, CancellationToken ct = default)
     {
         var tenantId = CurrentTenantId ?? throw new InvalidOperationException("Numbering needs an organization context.");
@@ -249,7 +256,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         if (Database.CurrentTransaction != null) return await SaveWithAuditAsync(ct);
-        await using var tx = await Database.BeginTransactionAsync(ct);
+        await using var tx = await Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, ct);
         var result = await SaveWithAuditAsync(ct);
         await tx.CommitAsync(ct);
         return result;

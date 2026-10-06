@@ -46,6 +46,7 @@ public class PayrollRunService(IAppDbContext db, IAccessService access, ICurrent
         if (req.Month is < 1 or > 12 || req.Year is < 2020 or > 2100) throw new ValidationException("Invalid payroll month.");
         if (new DateOnly(req.Year, req.Month, 1) > DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(1))
             throw new ValidationException("Payroll can't be run more than a month ahead.");
+        await db.LockAsync<BusinessEntity>(req.EntityId, ct); // one run per entity and month, even with simultaneous clicks
         if (await db.PayrollRuns.AnyAsync(r => r.EntityId == req.EntityId && r.Year == req.Year && r.Month == req.Month &&
                                                r.Status != PayrollRunStatus.Cancelled, ct))
             throw new ValidationException("A payroll run already exists for this entity and month. Recalculate or cancel it.");
