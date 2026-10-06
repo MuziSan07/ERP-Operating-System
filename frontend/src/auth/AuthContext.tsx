@@ -26,8 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { data } = await api.get<Me>('/auth/me')
       setMe(data)
-    } catch {
-      tokens.clear()
+    } catch (e) {
+      // Only a rejected session signs the user out; a network blip or server restart keeps the tokens for a retry.
+      if ((e as { response?: { status?: number } }).response?.status === 401) tokens.clear()
       setMe(null)
     } finally {
       setLoading(false)

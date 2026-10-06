@@ -93,7 +93,7 @@ export interface PayrollRunDetail { run: PayrollRun; payslips: Payslip[]; adjust
 export interface MyHr { employee?: Employee; balances: LeaveBalance[]; pendingApprovals: number }
 
 // ---- formatting ----
-export const money = (n?: number) => (n ?? 0).toLocaleString('en-PK', { maximumFractionDigits: 0 })
+export const money = (n?: number) => (n ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }) // lakh/crore grouping
 export const pct = (fraction?: number) => `${+((fraction ?? 0) * 100).toFixed(2)}%`
 export const monthName = (year: number, month: number) => dayjs(new Date(year, month - 1, 1)).format('MMMM YYYY')
 export const fmtDate = (d?: string) => (d ? dayjs(d).format('DD MMM YYYY') : '—')
