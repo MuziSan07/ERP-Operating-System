@@ -1,3 +1,5 @@
+using Erpos.Api.Infrastructure;
+using Microsoft.AspNetCore.RateLimiting;
 using Erpos.Application.Dtos;
 using Erpos.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -9,10 +11,10 @@ namespace Erpos.Api.Controllers;
 [Route("api/auth")]
 public class AuthController(AuthService auth) : ControllerBase
 {
-    [AllowAnonymous, HttpPost("login")]
+    [AllowAnonymous, HttpPost("login"), NoTransaction, EnableRateLimiting("auth")]
     public Task<AuthResponse> Login(LoginRequest req, CancellationToken ct) => auth.LoginAsync(req, ct);
 
-    [AllowAnonymous, HttpPost("refresh")]
+    [AllowAnonymous, HttpPost("refresh"), NoTransaction, EnableRateLimiting("auth")]
     public Task<AuthResponse> Refresh(RefreshRequest req, CancellationToken ct) => auth.RefreshAsync(req, ct);
 
     [AllowAnonymous, HttpPost("logout")]

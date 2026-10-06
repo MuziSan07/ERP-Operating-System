@@ -74,6 +74,9 @@ public class PaymentService(IAppDbContext db, IAccessService access, ICurrentUse
         {
             if (!docs.TryGetValue(a.DocumentId, out var d)) throw new NotFoundException("Document");
             if (d.Kind != docKind || d.ContactId != contact.Id) throw new ValidationException($"{d.Number} doesn't belong to {contact.Name}.");
+            // The receivable/payable lives in the document's entity; settling it from another entity would post the
+            // clearing line to the wrong books and bypass that entity's own payment rights.
+            if (d.EntityId != req.EntityId) throw new ValidationException($"{d.Number} belongs to another entity; record the payment in that entity.");
             if (d.Status is not (DocumentStatus.Open or DocumentStatus.PartiallyPaid)) throw new ValidationException($"{d.Number} is not open.");
             if (d.Currency != currency) throw new ValidationException($"{d.Number} is in {d.Currency}; this payment is in {currency}.");
             var balance = d.Total - d.AmountPaid;

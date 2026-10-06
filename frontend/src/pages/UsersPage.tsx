@@ -151,8 +151,8 @@ function UserModal({ user, types, onClose }: { user: User | null; types: UserTyp
         </Form.Item>
         {!user && (
           <>
-            <Form.Item name="password" label="Initial password" rules={[{ required: true, min: 8 }]}
-              extra="At least 8 characters with letters and digits.">
+            <Form.Item name="password" label="Initial password" rules={[{ required: true, min: 12 }]}
+              extra="At least 12 characters with letters and digits.">
               <Input.Password autoComplete="new-password" />
             </Form.Item>
             <Form.Item name="roleId" label="Role at that entity (optional)" extra="Applies to the entity and all its sub-entities.">
@@ -180,7 +180,7 @@ function ResetPasswordModal({ user, onClose }: { user: User; onClose: () => void
   return (
     <Modal open title={`Reset password: ${user.fullName}`} onCancel={onClose} onOk={submit} destroyOnHidden>
       <Form form={form} layout="vertical" preserve={false}>
-        <Form.Item name="newPassword" label="New password" rules={[{ required: true, min: 8 }]}>
+        <Form.Item name="newPassword" label="New password" rules={[{ required: true, min: 12 }]}>
           <Input.Password autoComplete="new-password" />
         </Form.Item>
       </Form>

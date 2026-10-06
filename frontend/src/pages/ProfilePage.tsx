@@ -38,7 +38,7 @@ export default function ProfilePage() {
               <Form.Item name="currentPassword" label="Current password" rules={[{ required: true }]}>
                 <Input.Password autoComplete="current-password" />
               </Form.Item>
-              <Form.Item name="newPassword" label="New password" rules={[{ required: true, min: 8 }]}>
+              <Form.Item name="newPassword" label="New password" rules={[{ required: true, min: 12 }]}>
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
               <Button type="primary" htmlType="submit">Change password</Button>

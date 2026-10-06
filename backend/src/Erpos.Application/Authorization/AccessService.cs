@@ -47,6 +47,10 @@ public class AccessService(IAppDbContext db, ICurrentUser currentUser) : IAccess
         if (_current != null) return _current;
         if (currentUser.UserId is not { } userId || currentUser.TenantId is null)
             return _current = new EffectivePermissions([]);
+        // Access tokens live up to 30 minutes; a deactivated user or suspended organization loses access at once.
+        var allowed = await db.Users.Where(u => u.Id == userId && u.IsActive && !u.IsDeleted)
+            .AnyAsync(u => u.Tenant == null || u.Tenant.Status != TenantStatus.Suspended, ct);
+        if (!allowed) return _current = new EffectivePermissions([]);
         return _current = await ComputeAsync(userId, currentUser.UserType!.Value, ct);
     }
 

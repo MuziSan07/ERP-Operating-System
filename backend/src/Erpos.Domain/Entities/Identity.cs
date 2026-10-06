@@ -16,6 +16,9 @@ public class User : BaseEntity
     public UserType UserType { get; set; } = UserType.Employee;
     public bool IsActive { get; set; } = true;
     public DateTime? LastLoginAt { get; set; }
+    /// <summary>Consecutive failed logins; reaching the limit locks the account for a while.</summary>
+    public int FailedLoginCount { get; set; }
+    public DateTime? LockedUntil { get; set; }
 
     /// <summary>The entity the user belongs to (their "home" branch/department).</summary>
     public Guid? PrimaryEntityId { get; set; }

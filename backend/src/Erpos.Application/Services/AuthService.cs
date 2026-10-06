@@ -10,6 +10,11 @@ namespace Erpos.Application.Services;
 public class AuthService(IAppDbContext db, IPasswordHasher hasher, ITokenService tokens, ICurrentUser currentUser,
     IAccessService access)
 {
+    private const int MaxFailedLogins = 5;
+    private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
+    // Checked against when the email is unknown, so both cases take the same BCrypt time (no account enumeration).
+    private static string? _dummyHash;
+
     public async Task<AuthResponse> LoginAsync(LoginRequest req, CancellationToken ct)
     {
         var email = req.Email.Trim().ToLowerInvariant();
@@ -17,12 +22,32 @@ public class AuthService(IAppDbContext db, IPasswordHasher hasher, ITokenService
         var user = await db.Users.IgnoreQueryFilters().Include(u => u.Tenant)
             .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted, ct);
 
-        if (user == null || !hasher.Verify(req.Password, user.PasswordHash)) throw new UnauthorizedException();
+        if (user == null)
+        {
+            hasher.Verify(req.Password, _dummyHash ??= hasher.Hash(Guid.NewGuid().ToString()));
+            throw new UnauthorizedException();
+        }
+        var now = DateTime.UtcNow;
+        if (user.LockedUntil > now)
+            throw new UnauthorizedException($"Too many failed attempts. The account is locked for {Math.Ceiling((user.LockedUntil.Value - now).TotalMinutes)} more minute(s).");
+        if (!hasher.Verify(req.Password, user.PasswordHash))
+        {
+            // Saved outside any request transaction (the login endpoint opts out), so the count survives the 401.
+            if (++user.FailedLoginCount >= MaxFailedLogins)
+            {
+                user.FailedLoginCount = 0;
+                user.LockedUntil = now + LockoutDuration;
+            }
+            await db.SaveChangesAsync(ct);
+            throw new UnauthorizedException();
+        }
         if (!user.IsActive) throw new UnauthorizedException("This account is disabled.");
         if (user.Tenant is { Status: TenantStatus.Suspended })
             throw new UnauthorizedException("Your organization's account is suspended.");
 
-        user.LastLoginAt = DateTime.UtcNow;
+        user.LastLoginAt = now;
+        user.FailedLoginCount = 0;
+        user.LockedUntil = null;
         return await IssueAsync(user, ct);
     }
 
@@ -30,8 +55,15 @@ public class AuthService(IAppDbContext db, IPasswordHasher hasher, ITokenService
     {
         var hash = tokens.HashToken(req.RefreshToken);
         var stored = await db.RefreshTokens.FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
-        if (stored == null || stored.RevokedAt != null || stored.ExpiresAt < DateTime.UtcNow)
+        if (stored == null || stored.ExpiresAt < DateTime.UtcNow)
             throw new UnauthorizedException("Session expired. Please sign in again.");
+        if (stored.RevokedAt != null)
+        {
+            // A rotated (already used) token came back: someone else has a copy. End every session of this user.
+            await UserRules.RevokeSessionsAsync(db, stored.UserId, ct);
+            await db.SaveChangesAsync(ct);
+            throw new UnauthorizedException("This session was ended for your security. Please sign in again.");
+        }
 
         var user = await db.Users.IgnoreQueryFilters().Include(u => u.Tenant)
             .FirstOrDefaultAsync(u => u.Id == stored.UserId && !u.IsDeleted && u.IsActive, ct);
@@ -84,6 +116,7 @@ public class AuthService(IAppDbContext db, IPasswordHasher hasher, ITokenService
             throw new ValidationException("Current password is incorrect.");
         Guard.Password(req.NewPassword);
         user.PasswordHash = hasher.Hash(req.NewPassword);
+        await UserRules.RevokeSessionsAsync(db, user.Id, ct); // a thief holding an old session is logged out too
         await db.SaveChangesAsync(ct);
     }
 

@@ -15,7 +15,8 @@ public class TransactionFilter(AppDbContext db) : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
-        if (HttpMethods.IsGet(context.HttpContext.Request.Method) || HttpMethods.IsHead(context.HttpContext.Request.Method) || db.Database.CurrentTransaction != null)
+        if (HttpMethods.IsGet(context.HttpContext.Request.Method) || HttpMethods.IsHead(context.HttpContext.Request.Method) || db.Database.CurrentTransaction != null
+            || context.ActionDescriptor.EndpointMetadata.OfType<NoTransactionAttribute>().Any())
         {
             await next();
             return;
@@ -30,3 +31,7 @@ public class TransactionFilter(AppDbContext db) : IAsyncActionFilter
         else await tx.CommitAsync();
     }
 }
+
+/// <summary>Opts an endpoint out of the request transaction (it must persist something even when it answers with an error).</summary>
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public class NoTransactionAttribute : Attribute;

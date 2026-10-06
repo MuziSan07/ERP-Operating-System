@@ -113,6 +113,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     private Guid? CurrentTenantId => currentUser.TenantId;
 
     private static readonly HashSet<string> SecretProperties = [nameof(User.PasswordHash), nameof(RefreshToken.TokenHash)];
+    // Recorded as changed but without values, so audit readers without HR/payroll rights don't see them.
+    private static readonly HashSet<string> MaskedProperties = [nameof(Employee.Cnic), nameof(Employee.Iban), nameof(Employee.BankAccountTitle),
+        nameof(Employee.EobiNumber), nameof(Employee.Ntn)];
+    private static readonly HashSet<Type> MaskedEntities = [typeof(EmployeeSalary), typeof(EmployeeSalaryLine), typeof(Payslip)];
 
     protected override void ConfigureConventions(ModelConfigurationBuilder c)
     {
@@ -310,12 +314,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         foreach (var p in entry.Properties)
         {
             if (SecretProperties.Contains(p.Metadata.Name)) continue;
+            var masked = MaskedEntities.Contains(entry.Entity.GetType()) && !p.Metadata.IsKey() && !p.Metadata.IsForeignKey() || MaskedProperties.Contains(p.Metadata.Name);
             if (entry.State == EntityState.Modified)
             {
                 if (!p.IsModified || Equals(p.OriginalValue, p.CurrentValue)) continue;
-                changes[p.Metadata.Name] = new { from = p.OriginalValue, to = p.CurrentValue };
+                changes[p.Metadata.Name] = masked ? "(changed, hidden)" : new { from = p.OriginalValue, to = p.CurrentValue };
             }
-            else changes[p.Metadata.Name] = entry.State == EntityState.Deleted ? p.OriginalValue : p.CurrentValue;
+            else changes[p.Metadata.Name] = masked ? "(hidden)" : entry.State == EntityState.Deleted ? p.OriginalValue : p.CurrentValue;
         }
 
         Guid? tenantId = entry.Entity switch

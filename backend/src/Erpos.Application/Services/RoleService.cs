@@ -29,7 +29,7 @@ public class RoleService(IAppDbContext db, IAccessService access, ICurrentUser c
 
     public async Task<RoleDto> CreateAsync(SaveRoleRequest req, CancellationToken ct)
     {
-        await access.EnsureAnywhereAsync(Permissions.RolesManage, ct);
+        await access.EnsureAtRootAsync(Permissions.RolesManage, ct); // roles apply organization-wide
         var role = new Role { TenantId = currentUser.TenantId!.Value };
         await ApplyAsync(role, req, [], ct);
         db.Roles.Add(role);
@@ -39,7 +39,7 @@ public class RoleService(IAppDbContext db, IAccessService access, ICurrentUser c
 
     public async Task<RoleDto> UpdateAsync(Guid id, SaveRoleRequest req, CancellationToken ct)
     {
-        await access.EnsureAnywhereAsync(Permissions.RolesManage, ct);
+        await access.EnsureAtRootAsync(Permissions.RolesManage, ct); // roles apply organization-wide
         var role = await db.Roles.Include(r => r.Permissions).FirstOrDefaultAsync(r => r.Id == id, ct)
                    ?? throw new NotFoundException("Role");
         var assignedAt = await db.UserRoleAssignments.Where(a => a.RoleId == id).Select(a => a.EntityId).Distinct()
@@ -51,7 +51,7 @@ public class RoleService(IAppDbContext db, IAccessService access, ICurrentUser c
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        await access.EnsureAnywhereAsync(Permissions.RolesManage, ct);
+        await access.EnsureAtRootAsync(Permissions.RolesManage, ct); // roles apply organization-wide
         var role = await db.Roles.FirstOrDefaultAsync(r => r.Id == id, ct) ?? throw new NotFoundException("Role");
         if (role.IsSystem) throw new ValidationException("Default roles can be edited but not deleted.");
         if (await db.UserRoleAssignments.AnyAsync(a => a.RoleId == id, ct))

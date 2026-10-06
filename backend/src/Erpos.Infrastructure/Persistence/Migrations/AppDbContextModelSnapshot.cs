@@ -5531,6 +5531,9 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
 
+                    b.Property<int>("FailedLoginCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -5543,6 +5546,9 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("PasswordHash")

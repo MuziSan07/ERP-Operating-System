@@ -95,6 +95,7 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
         user.Phone = req.Phone;
         user.UserType = req.UserType;
         user.PrimaryEntityId = req.PrimaryEntityId;
+        if (user.IsActive && !req.IsActive) await UserRules.RevokeSessionsAsync(db, user.Id, ct);
         user.IsActive = req.IsActive;
         await db.SaveChangesAsync(ct);
         return await GetAsync(id, ct);
@@ -107,6 +108,7 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
         if (user.Id == currentUser.UserId) throw new ValidationException("You cannot delete your own account.");
         user.IsDeleted = true;
         user.IsActive = false;
+        await UserRules.RevokeSessionsAsync(db, user.Id, ct);
         await db.SaveChangesAsync(ct);
     }
 
@@ -116,6 +118,9 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
         rules.EnsureCanManageType(user.UserType);
         Guard.Password(req.NewPassword);
         user.PasswordHash = hasher.Hash(req.NewPassword);
+        user.FailedLoginCount = 0;
+        user.LockedUntil = null; // an admin reset also unlocks the account
+        await UserRules.RevokeSessionsAsync(db, user.Id, ct);
         await db.SaveChangesAsync(ct);
     }
 
@@ -139,7 +144,8 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
     {
         var user = await LoadVisibleAsync(userId, Permissions.UsersAssign, ct);
         rules.EnsureCanManageType(user.UserType);
-        await rules.EnsureCanAssignRoleAsync(req.RoleId, req.EntityId, ct);
+        rules.EnsureNotSelf(userId);
+        await rules.EnsureCanAssignRoleAsync(req.RoleId, req.EntityId, ct, req.IncludeDescendants);
 
         if (await db.UserRoleAssignments.AnyAsync(a => a.UserId == userId && a.RoleId == req.RoleId && a.EntityId == req.EntityId, ct))
             throw new ValidationException("The user already has this role at this entity.");
@@ -157,6 +163,7 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
     {
         var user = await LoadVisibleAsync(userId, Permissions.UsersAssign, ct);
         rules.EnsureCanManageType(user.UserType);
+        rules.EnsureNotSelf(userId);
         var a = await db.UserRoleAssignments.FirstOrDefaultAsync(x => x.Id == assignmentId && x.UserId == userId, ct)
                 ?? throw new NotFoundException("Assignment");
         await access.EnsureAsync(Permissions.UsersAssign, a.EntityId, ct);
@@ -169,10 +176,10 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
     {
         var user = await LoadVisibleAsync(userId, Permissions.UsersAssign, ct);
         rules.EnsureCanManageType(user.UserType);
+        rules.EnsureNotSelf(userId);
         if (!Permissions.Exists(req.PermissionCode)) throw new ValidationException("Unknown permission.");
-        await access.EnsureAsync(Permissions.UsersAssign, req.EntityId, ct);
-        // You can only hand out (or take away) what you hold yourself.
-        await access.EnsureAsync(req.PermissionCode, req.EntityId, ct);
+        // You can only hand out (or take away) what you hold yourself, everywhere the override reaches.
+        await rules.EnsureCanSetOverrideAsync(req.PermissionCode, req.EntityId, req.IncludeDescendants, ct);
 
         var existing = await db.UserPermissionOverrides.FirstOrDefaultAsync(o =>
             o.UserId == userId && o.EntityId == req.EntityId && o.PermissionCode == req.PermissionCode, ct);
@@ -197,9 +204,12 @@ public class UserService(IAppDbContext db, IAccessService access, ICurrentUser c
     {
         var user = await LoadVisibleAsync(userId, Permissions.UsersAssign, ct);
         rules.EnsureCanManageType(user.UserType);
+        rules.EnsureNotSelf(userId); // removing your own "deny" would be an escalation
         var o = await db.UserPermissionOverrides.FirstOrDefaultAsync(x => x.Id == overrideId && x.UserId == userId, ct)
                 ?? throw new NotFoundException("Override");
-        await access.EnsureAsync(Permissions.UsersAssign, o.EntityId, ct);
+        // Removing a denial widens access, so it needs the same rights as granting.
+        if (o.IsGranted) await access.EnsureAsync(Permissions.UsersAssign, o.EntityId, ct);
+        else await rules.EnsureCanSetOverrideAsync(o.PermissionCode, o.EntityId, o.IncludeDescendants, ct);
         db.UserPermissionOverrides.Remove(o);
         await db.SaveChangesAsync(ct);
         return await GetAccessAsync(userId, ct);
