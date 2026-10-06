@@ -1,0 +1,18 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+# Node
+node_modules/
+dist/
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+
+# Local secrets (templates: .env.example, appsettings.Development.example.json)
+.env
+backend/src/Erpos.Api/appsettings.Development.json
+.claude/settings.local.json
+*.log
