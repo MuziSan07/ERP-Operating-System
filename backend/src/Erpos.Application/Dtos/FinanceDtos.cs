@@ -51,7 +51,7 @@ public record DocumentDto(Guid Id, DocumentKind Kind, string? Number, Guid Entit
     DateTime CreatedAt, Guid? PurchaseOrderId, string? PurchaseOrderNumber, IReadOnlyList<DocumentLineDto> Lines);
 public record DocumentListItem(Guid Id, DocumentKind Kind, string? Number, string EntityName, Guid ContactId, string ContactName,
     DateOnly Date, DateOnly DueDate, string? Reference, string Currency, DocumentStatus Status, decimal Total, decimal Balance,
-    int DaysOverdue);
+    int DaysOverdue, decimal Subtotal = 0, Guid EntityId = default);
 public record DocumentLineInput(string Description, Guid AccountId, decimal Quantity, decimal UnitPrice, Guid? TaxRateId,
     Guid? PurchaseOrderLineId = null);
 public record SaveDocumentRequest(Guid EntityId, Guid ContactId, DateOnly Date, DateOnly? DueDate, string? Reference, string? Notes,

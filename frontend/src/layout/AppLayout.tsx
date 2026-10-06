@@ -33,7 +33,7 @@ export const BUSINESS_MODULES = [
 ]
 
 export default function AppLayout() {
-  const { me, can, logout, isPlatformAdmin } = useAuth()
+  const { me, logout, isPlatformAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const screens = Grid.useBreakpoint()
@@ -81,6 +81,8 @@ export default function AppLayout() {
       open('/finance/contacts') && { key: '/finance/contacts', icon: <ContactsOutlined />, label: 'Customers & vendors' },
       open('/finance/journals') && { key: '/finance/journals', icon: <BookOutlined />, label: 'Journal entries' },
       open('/finance/reports') && { key: '/finance/reports', icon: <BarChartOutlined />, label: 'Reports' },
+      open('/finance/withholding') && { key: '/finance/withholding', icon: <SafetyOutlined />, label: 'Withholding tax' },
+      open('/finance/reconciliation') && { key: '/finance/reconciliation', icon: <BankOutlined />, label: 'Bank reconciliation' },
       open('/finance/settings') && { key: '/finance/settings', icon: <SettingOutlined />, label: 'Accounting setup' },
     ].filter(Boolean) as MenuProps['items']
 
@@ -154,7 +156,7 @@ export default function AppLayout() {
       ...(modules.length ? [{ type: 'group' as const, label: 'Modules', children: modules }] : []),
       ...(admin?.length ? [{ type: 'group' as const, label: 'Administration', children: admin }] : []),
     ]
-  }, [me, can, isPlatformAdmin, pending])
+  }, [me, isPlatformAdmin, pending])
 
   const userMenu: MenuProps = {
     items: [

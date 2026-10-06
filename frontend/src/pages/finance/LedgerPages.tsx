@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  App, Button, Card, Checkbox, Col, DatePicker, Descriptions, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Row, Segmented, Select,
-  Space, Table, Tag, Typography,
-} from 'antd'
+import { App, Button, Card, Checkbox, Col, DatePicker, Descriptions, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Row, Segmented, Select, Space, Switch, Table, Tag, Typography } from 'antd'
 import { DeleteOutlined, PlusOutlined, RollbackOutlined, SendOutlined, StopOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import { api, errorMessage } from '../../api/client'
@@ -12,7 +9,7 @@ import { JOURNAL_COLORS, amount, type Contact, type JournalEntry, type JournalSo
 import { fmtDate } from '../../api/hr'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
-import { AccountSelect, ContactSelect, CurrencyTag, useContacts, useFinanceSettings } from '../../components/FinancePickers'
+import { AccountSelect, WhtRateSelect, ContactSelect, CurrencyTag, useContacts, useFinanceSettings } from '../../components/FinancePickers'
 import { PaymentModal } from './DocumentsPage'
 
 // ======================= Payments =======================
@@ -58,6 +55,7 @@ export function PaymentsPage() {
             { title: 'Account', dataIndex: 'bankAccountName' },
             { title: 'Reference', dataIndex: 'reference' },
             { title: 'Amount', align: 'right', render: (_, p) => <Space>{amount(p.amount)}<CurrencyTag currency={p.currency} base={settings?.baseCurrency} /></Space> },
+            { title: 'Tax withheld', align: 'right', render: (_, p) => p.withholdingTax ? <span title={`u/s ${p.withholdingSection}; bank paid ${amount(p.netPaid)}`}>{amount(p.withholdingTax)}</span> : '' },
             {
               key: 'x', align: 'right', render: (_, p) => !p.isVoid && can('finance.payments.approve', p.entityId) && (
                 <Popconfirm title="Void this payment?" description="The ledger entry is reversed and the documents reopen." onConfirm={() => voidPayment(p.id)}>
@@ -319,6 +317,12 @@ export function ContactsPage() {
             <Col xs={8}><Form.Item name="city" label="City"><Input /></Form.Item></Col>
             <Col xs={8}><Form.Item name="currency" label="Currency" extra="Blank = base"><Input maxLength={3} /></Form.Item></Col>
             <Col xs={8}><Form.Item name="paymentTermsDays" label="Payment terms (days)"><InputNumber min={0} max={365} style={{ width: '100%' }} /></Form.Item></Col>
+            <Form.Item noStyle shouldUpdate={(a, b) => a.isVendor !== b.isVendor}>
+              {({ getFieldValue }) => getFieldValue('isVendor') && <>
+                <Col xs={16}><Form.Item name="defaultWhtRateId" label="Income tax withholding when paying" extra="Suggested on every payment to this vendor"><WhtRateSelect /></Form.Item></Col>
+                <Col xs={8}><Form.Item name="notOnActiveTaxpayerList" label="Not on FBR's ATL" valuePropName="checked" tooltip="Suppliers missing from the Active Taxpayer List suffer double withholding"><Switch /></Form.Item></Col>
+              </>}
+            </Form.Item>
           </Row>
         </Form>
       </Modal>

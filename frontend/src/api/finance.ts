@@ -34,7 +34,7 @@ export interface TaxRate { id: string; code: string; name: string; rate: number;
 export interface Contact {
   id: string; code: string; name: string; isCustomer: boolean; isVendor: boolean; email?: string; phone?: string; address?: string
   city?: string; country?: string; ntn?: string; strn?: string; cnic?: string; currency?: string; paymentTermsDays: number; isActive: boolean
-  receivable: number; payable: number
+  receivable: number; payable: number; defaultWhtRateId?: string; notOnActiveTaxpayerList: boolean
 }
 export interface JournalLine { accountId: string; accountCode: string; accountName: string; entityId: string; entityName?: string; description?: string; debit: number; credit: number; baseDebit: number; baseCredit: number; contactId?: string; contactName?: string }
 export interface JournalEntry {
@@ -49,11 +49,34 @@ export interface FinanceDocument {
   currency: string; exchangeRate: number; status: DocumentStatus; subtotal: number; taxTotal: number; total: number; amountPaid: number
   balance: number; baseTotal: number; journalEntryId?: string; createdAt: string; lines: DocumentLine[]
 }
-export interface DocumentListItem { id: string; kind: DocumentKind; number?: string; entityName: string; contactId: string; contactName: string; date: string; dueDate: string; reference?: string; currency: string; status: DocumentStatus; total: number; balance: number; daysOverdue: number }
+export interface DocumentListItem { id: string; kind: DocumentKind; number?: string; entityName: string; contactId: string; contactName: string; date: string; dueDate: string; reference?: string; currency: string; status: DocumentStatus; total: number; balance: number; daysOverdue: number; subtotal: number; entityId: string }
 export interface Payment {
   id: string; kind: PaymentKind; number: string; entityId: string; entityName: string; contactId: string; contactName: string; date: string
   bankAccountId: string; bankAccountName: string; currency: string; exchangeRate: number; amount: number; reference?: string; notes?: string
   isVoid: boolean; journalEntryId?: string; allocations: { documentId: string; documentNumber?: string; amount: number; baseAmount: number }[]
+  withholdingTax: number; netPaid: number; withholdingSection?: string
+}
+
+// ---- Withholding tax & bank reconciliation ----
+export interface WhtRate { id: string; code: string; name: string; section: string; rate: number; payableAccountId: string; payableAccountName: string; isActive: boolean }
+export interface WhtDeduction {
+  paymentId: string; paymentNumber: string; date: string; vendorId: string; vendorName: string; vendorNtn?: string; vendorCnic?: string; nonFiler: boolean
+  section: string; rate: number; taxBase: number; tax: number; cprNumber?: string; depositedOn?: string
+}
+export interface WhtSummary { from: string; to: string; deductions: WhtDeduction[]; totalBase: number; totalTax: number; deposited: number; undeposited: number }
+export interface WhtDeposit { id: string; year: number; month: number; date: string; amount: number; cprNumber: string; deductions: number }
+export interface WhtCertificate {
+  organizationName: string; organizationNtn?: string; vendorName: string; vendorNtn?: string; vendorCnic?: string; from: string; to: string
+  deductions: WhtDeduction[]; totalBase: number; totalTax: number
+}
+export type ReconciliationStatus = 'Draft' | 'Completed'
+export interface StatementLine { id: string; date: string; description: string; reference?: string; amount: number; journalLineId?: string; matchedTo?: string }
+export interface BookItem { journalLineId: string; date: string; number: string; description: string; amount: number; matched: boolean }
+export interface ReconciliationListItem { id: string; bankAccountName: string; statementDate: string; statementBalance: number; status: ReconciliationStatus; lines: number; unmatched: number }
+export interface Reconciliation {
+  id: string; entityId: string; bankAccountId: string; bankAccountName: string; statementDate: string; statementBalance: number; status: ReconciliationStatus
+  lines: StatementLine[]; bookItems: BookItem[]; bookBalance: number; depositsInTransit: number; outstandingPayments: number
+  adjustedStatementBalance: number; difference: number; unmatchedLines: number; canComplete: boolean
 }
 export interface TrialBalance { asOf: string; currency: string; rows: { accountId: string; code: string; name: string; type: AccountType; debit: number; credit: number }[]; totalDebit: number; totalCredit: number }
 export interface StatementSection { title: string; lines: { code: string; name: string; amount: number }[]; total: number }

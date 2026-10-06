@@ -87,8 +87,17 @@ Every create, update or delete is written to the audit log automatically (`AppDb
 - **Reports** (consolidated or per entity): P&L, balance sheet (prior years' profit is rolled into retained earnings, no
   closing entries), trial balance, general ledger with drill-down, AR/AP aging, monthly sales tax summary, and a dashboard.
 
-Not yet: FBR POS/IRIS e-invoicing integration (needs FBR credentials), unrealized FX revaluation, withholding tax on
-vendor payments, bank reconciliation, budgets, and paying a foreign-currency invoice from a base-currency account.
+- **Withholding tax (s.153):** editable rates for goods, services and contracts, for companies and for individuals/AOPs.
+  Suppliers not on FBR's Active Taxpayer List are charged double.
+  - Paying a bill withholds the tax on the part paid, excluding sales tax. The bill is settled for the gross amount,
+    the bank pays the net, and the tax is held in 2185.
+  - Monthly register; deposit to the treasury with the CPR number; section 164 certificates per supplier.
+- **Bank reconciliation:** import the bank's CSV export, auto-match by amount and date, match by hand, or post bank
+  charges straight from a statement line. Deposits in transit and unpresented cheques are worked out; completion
+  requires the statement and the books to agree.
+
+Not yet: FBR POS/IRIS e-invoicing integration (needs FBR credentials), unrealized FX revaluation, budgets, and paying a
+foreign-currency invoice from a base-currency account.
 
 ## Inventory & Procurement
 
