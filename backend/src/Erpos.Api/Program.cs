@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Text.Json.Serialization;
@@ -9,6 +12,23 @@ using Erpos.Infrastructure.Persistence;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Production logs are one JSON object per line (for Loki/ELK/CloudWatch); development keeps the readable console.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Logging.ClearProviders();
+    builder.Logging.AddJsonConsole(o => { o.IncludeScopes = true; o.TimestampFormat = "yyyy-MM-ddTHH:mm:ss.fffZ"; o.UseUtcTimestamp = true; });
+}
+
+// Behind nginx/a load balancer: trust X-Forwarded-For/Proto so client IPs (rate limiting, logs) and HTTPS are right.
+// The API port must only be reachable through the proxy (as in docker-compose.prod.yml).
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+{
+    o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    o.KnownIPNetworks.Clear();
+    o.KnownProxies.Clear();
+});
+builder.Services.AddHealthChecks().AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -53,8 +73,28 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Migrations and data upgrades run once per deployment: `dotnet Erpos.Api.dll --migrate` (a one-off job before rollout),
+// or on startup when Database:MigrateOnStartup is true (the default in Development only). Several API instances
+// starting together would otherwise race to migrate the same database.
+var migrateOnly = args.Contains("--migrate");
 using (var scope = app.Services.CreateScope())
-    await scope.ServiceProvider.GetRequiredService<DataSeeder>().RunAsync();
+{
+    if (migrateOnly || app.Configuration.GetValue("Database:MigrateOnStartup", app.Environment.IsDevelopment()))
+        await scope.ServiceProvider.GetRequiredService<DataSeeder>().RunAsync();
+    else
+    {
+        var pending = (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.GetPendingMigrationsAsync()).ToList();
+        if (pending.Count > 0)
+            throw new InvalidOperationException($"The database is missing {pending.Count} migration(s) ({pending[^1]}). Run the API once with --migrate first.");
+    }
+}
+if (migrateOnly)
+{
+    app.Logger.LogInformation("Migrations and data upgrades applied.");
+    return;
+}
+
+app.UseForwardedHeaders();
 
 app.UseExceptionHandler();
 app.Use(async (ctx, next) =>
@@ -76,7 +116,17 @@ app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+// Every log line written while handling a request carries the organization and user.
+app.Use(async (ctx, next) =>
+{
+    var user = ctx.RequestServices.GetRequiredService<ICurrentUser>();
+    using (app.Logger.BeginScope(new Dictionary<string, object?> { ["TenantId"] = user.TenantId, ["UserId"] = user.UserId }))
+        await next();
+});
 app.MapControllers();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+// Liveness: the process answers. Readiness: it can also reach the database (use for load balancer / orchestrator checks).
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = c => c.Tags.Contains("ready") });
 
 app.Run();

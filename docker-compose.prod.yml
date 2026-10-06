@@ -1,0 +1,94 @@
+# Production-style stack: MySQL, a one-off migration job, the API, the web front end (nginx) and nightly backups.
+#   cp .env.prod.example .env.prod   # fill in real secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# The migrate job runs to completion before the API starts; re-running `up` after a new release migrates again.
+# Put TLS in front of port 80 (Caddy, a cloud load balancer, or certbot) and send X-Forwarded-Proto.
+name: erpos
+
+x-api-env: &api-env
+  ConnectionStrings__Default: "Server=mysql;Port=3306;Database=erpos;User=erpos;Password=${MYSQL_PASSWORD:?set MYSQL_PASSWORD};"
+  Jwt__Key: "${JWT_KEY:?set JWT_KEY (32+ random characters)}"
+  Seed__PlatformAdminEmail: "${PLATFORM_ADMIN_EMAIL:?set PLATFORM_ADMIN_EMAIL}"
+  Seed__PlatformAdminPassword: "${PLATFORM_ADMIN_PASSWORD:?set PLATFORM_ADMIN_PASSWORD}"
+  Cors__Origins__0: "${PUBLIC_URL:?set PUBLIC_URL, e.g. https://erp.example.com}"
+  AllowedHosts: "${ALLOWED_HOSTS:-*}"
+  Database__MigrateOnStartup: "false"
+
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: erpos
+      MYSQL_USER: erpos
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--log-bin=mysql-bin", "--binlog-expire-logs-seconds=604800"]
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      # TCP (127.0.0.1), not the socket: during first-time init MySQL runs a temporary server without networking that
+      # answers socket pings, so a socket check would report healthy before other containers can connect.
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u root -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  migrate:
+    build: ./backend
+    image: erpos-api
+    command: ["--migrate"]
+    environment: *api-env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: erpos-api
+    restart: unless-stopped
+    environment: *api-env
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    # No published port: only nginx (web) reaches the API.
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+    depends_on:
+      - api
+
+  # Nightly logical backup, kept for BACKUP_KEEP_DAYS. Copy ./backups off the server (rclone/S3/another host) as well;
+  # binary logs (7 days) allow point-in-time recovery between dumps.
+  backup:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_PWD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      KEEP_DAYS: ${BACKUP_KEEP_DAYS:-14}
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -o pipefail
+        while true; do
+          f=/backups/erpos-$$(date +%Y%m%d-%H%M).sql.gz
+          if mysqldump -h mysql -u root --single-transaction --routines --triggers --databases erpos | gzip > "$$f.tmp"              && gunzip -c "$$f.tmp" | grep -q "Dump completed"; then
+            mv "$$f.tmp" "$$f" && echo "backup ok: $$f ($$(du -h "$$f" | cut -f1))"
+            find /backups -name 'erpos-*.sql.gz' -mtime +$$KEEP_DAYS -delete
+            sleep 86400
+          else
+            rm -f "$$f.tmp"; echo "BACKUP FAILED, retrying in 5 minutes" >&2
+            sleep 300
+          fi
+        done
+
+volumes:
+  mysql-data:

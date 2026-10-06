@@ -16,15 +16,19 @@ public class ExceptionHandler(ILogger<ExceptionHandler> logger, IHostEnvironment
             _ when IsLockConflict(ex) => (409, "Someone else was saving related records at the same moment. Please try again."),
             _ => (500, "An unexpected error occurred.")
         };
-        if (status == 500) logger.LogError(ex, "Unhandled exception");
+        // The trace id ties what the user reports ("error 7c1f…") to the server log line.
+        var traceId = System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier;
+        if (status == 500) logger.LogError(ex, "Unhandled exception {TraceId}", traceId);
 
         ctx.Response.StatusCode = status;
-        await ctx.Response.WriteAsJsonAsync(new ProblemDetails
+        var problem = new ProblemDetails
         {
             Status = status,
             Title = title,
             Detail = status == 500 && env.IsDevelopment() ? ex.ToString() : null
-        }, ct);
+        };
+        problem.Extensions["traceId"] = traceId;
+        await ctx.Response.WriteAsJsonAsync(problem, ct);
         return true;
     }
 

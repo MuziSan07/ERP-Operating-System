@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend — lint, typecheck, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build # tsc -b && vite build
+
+  backend:
+    name: Backend — build and end-to-end suites
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: erpos
+          MYSQL_USER: erpos
+          MYSQL_PASSWORD: ci-db-password
+          MYSQL_ROOT_PASSWORD: ci-root-password
+        ports: ["3307:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pci-root-password --silent"
+          --health-interval=5s --health-timeout=5s --health-retries=30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The tests read the platform admin from appsettings.Development.json, which is git-ignored: create a CI copy.
+      - name: Write CI settings
+        run: |
+          cat > backend/src/Erpos.Api/appsettings.Development.json <<EOF
+          {
+            "ConnectionStrings": { "Default": "Server=127.0.0.1;Port=3307;Database=erpos;User=erpos;Password=ci-db-password;" },
+            "Jwt": { "Key": "$(openssl rand -base64 48)" },
+            "Seed": { "PlatformAdminEmail": "platform@ci.local", "PlatformAdminPassword": "CiPlatform$(openssl rand -hex 6)9" }
+          }
+          EOF
+
+      - name: Build
+        run: dotnet build backend/Erpos.slnx -c Release
+
+      - name: Start API
+        working-directory: backend
+        run: |
+          nohup dotnet run --no-build -c Release --project src/Erpos.Api --launch-profile http > api.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -fs http://localhost:5136/health/ready && exit 0
+            sleep 2
+          done
+          echo "API did not become ready"; cat api.log; exit 1
+
+      - name: End-to-end suites
+        working-directory: backend
+        run: |
+          for t in smoke integrity-smoke security-smoke hr-smoke finance-smoke inventory-smoke hotel-smoke travel-smoke logistics-smoke ngo-smoke projects-smoke; do
+            echo "::group::$t"
+            node tests/$t.mjs
+            echo "::endgroup::"
+          done
+
+      - name: API log
+        if: failure()
+        run: tail -n 300 backend/api.log
+
+  docker:
+    name: Docker images build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t erpos-api ./backend
+      - run: docker build -t erpos-web ./frontend
