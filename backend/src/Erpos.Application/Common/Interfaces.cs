@@ -128,6 +128,12 @@ public interface IAppDbContext
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Locks one row (SELECT … FOR UPDATE) until the current transaction ends, so a "check, then insert" rule (room free,
+    /// grant line within budget, one payroll run per month) can't be raced by a simultaneous request.
+    /// </summary>
+    Task LockAsync<T>(Guid id, CancellationToken ct = default) where T : class;
+
     /// <summary>Atomically issues the next number of a per-organization series, independent of pending changes.</summary>
     Task<int> NextSequenceAsync(string key, CancellationToken ct = default);
 }

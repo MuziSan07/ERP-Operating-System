@@ -28,7 +28,7 @@ const succeeded = rs => rs.filter(r => r.status < 400).length
 
 const platform = await login(cfg.Seed.PlatformAdminEmail, cfg.Seed.PlatformAdminPassword)
 await ok(call(platform, 'POST', '/platform/tenants', { name: `Integrity ${run}`, code: `INT${run}`, industry: 'General', maxUsers: 20, currency: 'PKR', timeZone: 'Asia/Karachi',
-  modules: ['finance', 'projects', 'hr', 'payroll', 'logistics'], superAdminName: 'Owner', superAdminEmail: mail('owner'), superAdminPassword: pw }), 'tenant')
+  modules: ['finance', 'projects', 'hr', 'payroll', 'logistics', 'hotel', 'ngo'], superAdminName: 'Owner', superAdminEmail: mail('owner'), superAdminPassword: pw }), 'tenant')
 const owner = await login(mail('owner'))
 const E = (await ok(call(owner, 'GET', '/auth/me'), 'me')).entities[0].id
 const accounts = await ok(call(owner, 'GET', '/finance/accounts'), 'accounts')
@@ -81,6 +81,33 @@ await ok(call(owner, 'POST', `/finance/invoices/${invoiceId}/void`, { reason: 'W
 project = await ok(call(owner, 'GET', `/projects/${project.id}`), 'project')
 const rebill = await call(owner, 'POST', `/projects/${project.id}/invoice`, {})
 check(project.unbilled === 10000 && rebill.status === 200 && rebill.data.hours === 5, 'voiding the invoice puts the hours back to be billed again', [project.unbilled, rebill.status, rebill.data])
+
+// 5. Two front-desk clerks putting different guests in the same room at the same moment.
+const rt = await ok(call(owner, 'POST', '/hotel/room-types', { entityId: E, code: 'STD', name: 'Standard', baseRate: 10000, maxAdults: 2, maxChildren: 0, isActive: true }), 'room type')
+const r101 = await ok(call(owner, 'POST', '/hotel/rooms', { entityId: E, number: '101', roomTypeId: rt.id, floor: '1', isActive: true }), 'room')
+await ok(call(owner, 'POST', '/hotel/rooms', { entityId: E, number: '102', roomTypeId: rt.id, floor: '1', isActive: true }), 'room 2')
+const booking = name => ok(call(owner, 'POST', '/hotel/reservations', { entityId: E, newGuest: { fullName: name }, source: 'Phone', arrivalDate: day(5), departureDate: day(7),
+  adults: 1, children: 0, tentative: false, rooms: [{ roomTypeId: rt.id }] }), name)
+const [g1, g2] = [await booking('Guest One'), await booking('Guest Two')]
+const assigns = await Promise.all([g1, g2].map(g => call(owner, 'POST', `/hotel/reservations/${g.id}/assign-room`, { reservationRoomId: g.rooms[0].id, roomId: r101.id })))
+check(succeeded(assigns) === 1 && assigns.some(r => r.status === 400 && /already assigned/.test(r.data?.title)), 'room 101 goes to only one of two simultaneous bookings',
+  assigns.map(r => [r.status, r.data?.title]))
+
+// 6. Two payroll officers starting the same month's payroll at once.
+const runs = await Promise.all([1, 2].map(() => call(owner, 'POST', '/payroll/runs', { entityId: E, year: 2026, month: 9, includeSubEntities: true })))
+check(succeeded(runs) === 1, 'only one payroll run per month even when started twice at once', runs.map(r => [r.status, r.data?.title]))
+
+// 7. Two charges racing for the last of a grant budget line (100,000 + 10% flexibility).
+const donor = await ok(call(owner, 'POST', '/ngo/donors', { name: 'Donor', type: 'Foundation' }), 'donor')
+let grant = await ok(call(owner, 'POST', '/ngo/grants', { entityId: E, title: 'Grant', donorId: donor.id, startDate: day(-10), endDate: day(200), reportingFrequency: 'EndOnly',
+  flexibilityPercent: 10, budgetLines: [{ code: 'A', description: 'Activities', category: 'Activities', amount: 100000, expenseAccountId: acc('6960') }],
+  tranches: [{ dueDate: day(0), amount: 100000 }] }), 'grant')
+grant = await ok(call(owner, 'POST', `/ngo/grants/${grant.id}/activate`), 'activate grant')
+const spend = () => call(owner, 'POST', '/ngo/expenses', { date: day(0), function: 'Program', grantId: grant.id, budgetLineId: grant.budgetLines[0].id, description: 'Workshop',
+  amount: 70000, paidFromAccountId: acc('1120') })
+const charges = await Promise.all([spend(), spend()])
+grant = await ok(call(owner, 'GET', `/ngo/grants/${grant.id}`), 'grant')
+check(succeeded(charges) === 1 && grant.spentBase === 70000, 'two simultaneous 70,000 charges on a 110,000 line: only one gets through', [charges.map(r => r.status), grant.spentBase])
 
 books = await tb()
 check(books.t.totalDebit === books.t.totalCredit, 'books balance')

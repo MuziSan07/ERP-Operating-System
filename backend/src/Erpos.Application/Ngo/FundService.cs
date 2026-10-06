@@ -181,6 +181,9 @@ public class FundService(IAppDbContext db, IAccessService access, ICurrentUser c
             entityId = req.EntityId ?? beneficiary?.EntityId ?? throw new ValidationException("Choose the entity the cost belongs to.");
         }
         await access.EnsureAsync(Permissions.FundExpensesCreate, entityId, ct);
+        // Budget and balance checks below must not be raced by a simultaneous charge to the same grant or fund.
+        if (grant != null) await db.LockAsync<Grant>(grant.Id, ct);
+        else await db.LockAsync<Fund>(fund.Id, ct);
 
         if (req.Amount <= 0) throw new ValidationException("Amount must be positive.");
         var amount = LedgerService.Round(req.Amount);

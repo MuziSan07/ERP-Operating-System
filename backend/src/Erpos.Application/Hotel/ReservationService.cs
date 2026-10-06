@@ -167,6 +167,7 @@ public class ReservationService(IAppDbContext db, IAccessService access, ICurren
 
     private async Task EnsureRoomFreeAsync(Guid roomId, Guid roomTypeId, DateOnly from, DateOnly to, Guid reservationId, CancellationToken ct)
     {
+        await db.LockAsync<Room>(roomId, ct); // a simultaneous booking of this room waits, then sees this one
         var room = await db.Rooms.FirstOrDefaultAsync(x => x.Id == roomId, ct) ?? throw new NotFoundException("Room");
         if (room.RoomTypeId != roomTypeId) throw new ValidationException($"Room {room.Number} is not of the booked room type.");
         if (!room.IsActive) throw new ValidationException($"Room {room.Number} is inactive.");
@@ -304,6 +305,7 @@ public class ReservationService(IAppDbContext db, IAccessService access, ICurren
         var revenue = 0m;
         foreach (var r in inHouse)
         {
+            await db.LockAsync<Reservation>(r.Id, ct); // two audits at once can't both charge the same night
             var added = await PostRoomNightsAsync(r, req.Date, req.Date.AddDays(1), ct);
             if (added.Count > 0) count++;
             revenue += added.Sum(c => c.Amount);

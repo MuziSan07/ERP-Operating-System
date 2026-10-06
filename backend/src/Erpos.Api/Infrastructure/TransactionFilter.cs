@@ -2,6 +2,7 @@ using Erpos.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 namespace Erpos.Api.Infrastructure;
 
@@ -20,7 +21,8 @@ public class TransactionFilter(AppDbContext db) : IAsyncActionFilter
             return;
         }
 
-        await using var tx = await db.Database.BeginTransactionAsync(context.HttpContext.RequestAborted);
+        // Read committed: after waiting on a row lock, later reads see what the other request just committed.
+        await using var tx = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.ReadCommitted, context.HttpContext.RequestAborted);
         var executed = await next();
         var failed = executed.Exception != null && !executed.ExceptionHandled
                      || executed.Result is IStatusCodeActionResult { StatusCode: >= 400 };
