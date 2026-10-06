@@ -8,6 +8,9 @@ import type { AuditLog, PagedResult } from '../api/types'
 const TABLES = ['BusinessEntity', 'User', 'Role', 'RolePermission', 'UserRoleAssignment', 'UserPermissionOverride', 'EntityModule']
 const ACTION_COLOR: Record<string, string> = { Create: 'green', Update: 'blue', Delete: 'red' }
 
+/** Pretty-prints the change set; a malformed row is shown as-is instead of crashing the page. */
+const pretty = (changes?: string) => { try { return JSON.stringify(JSON.parse(changes ?? ''), null, 2) } catch { return changes } }
+
 export default function AuditPage() {
   const [table, setTable] = useState<string>()
   const [page, setPage] = useState(1)
@@ -28,7 +31,7 @@ export default function AuditPage() {
           pagination={{ current: page, pageSize: 25, total: data?.total, onChange: setPage, showSizeChanger: false }}
           expandable={{
             rowExpandable: r => !!r.changes,
-            expandedRowRender: r => <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: 12 }}>{JSON.stringify(JSON.parse(r.changes!), null, 2)}</pre>,
+            expandedRowRender: r => <pre style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: 12 }}>{pretty(r.changes)}</pre>,
           }}
           columns={[
             { title: 'When', dataIndex: 'timestamp', render: (d: string) => dayjs(d).format('DD MMM YYYY HH:mm:ss') },

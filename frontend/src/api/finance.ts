@@ -66,4 +66,5 @@ export interface FinanceDashboard { currency: string; cashAndBank: number; recei
 
 export const DOC_COLORS: Record<DocumentStatus, string> = { Draft: 'default', Open: 'blue', PartiallyPaid: 'gold', Paid: 'green', Void: 'red' }
 export const JOURNAL_COLORS: Record<JournalStatus, string> = { Draft: 'default', Posted: 'green', Reversed: 'red' }
-export const amount = (n?: number, digits = 2) => (n ?? 0).toLocaleString('en-PK', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+// Lakh/crore grouping as used in Pakistani accounts: 12,50,000.00 (en-IN has the same digit grouping as en-PK practice).
+export const amount = (n?: number, digits = 2) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits })

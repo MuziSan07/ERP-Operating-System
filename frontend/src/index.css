@@ -10,3 +10,6 @@ body { font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; }
 }
+
+/* Editor drawers have desktop widths (size={1000}); on phones and tablets they take the full screen instead of overflowing. */
+.ant-drawer-content-wrapper { max-width: 100vw; }

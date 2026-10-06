@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Avatar, Badge, Button, Dropdown, Grid, Layout, Menu, Tag, Typography, theme, type MenuProps } from 'antd'
+import { Avatar, Badge, Button, Dropdown, Grid, Layout, Menu, Spin, Tag, Typography, theme, type MenuProps } from 'antd'
 import {
   ApartmentOutlined, AuditOutlined, BankOutlined, CarOutlined, DashboardOutlined, DollarOutlined, GlobalOutlined,
   HeartOutlined, HomeOutlined, InboxOutlined, LogoutOutlined, ProjectOutlined, SafetyOutlined, ShoppingCartOutlined,
@@ -10,7 +10,9 @@ import {
   SolutionOutlined, ShoppingOutlined, CarryOutOutlined, FlagOutlined, ReadOutlined, BellOutlined, CalendarTwoTone, ClearOutlined, KeyOutlined, LineChartOutlined,
 } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
-import { P, useAuth } from '../auth/AuthContext'
+import { useAuth } from '../auth/AuthContext'
+import { canOpen } from '../auth/routeAccess'
+import ErrorBoundary from '../components/ErrorBoundary'
 import { api } from '../api/client'
 
 const { Header, Sider, Content } = Layout
@@ -49,88 +51,88 @@ export default function AppLayout() {
       return [{ key: '/platform/tenants', icon: <BankOutlined />, label: 'Organizations' }]
 
     const held = new Set(me?.entities.flatMap(e => e.permissions) ?? [])
+    const open = (path: string) => canOpen(path, held) // same rules as the router (auth/routeAccess.ts)
     const hasModule = (m: string) => [...held].some(p => p.startsWith(m + '.'))
 
     const admin: MenuProps['items'] = [
-      can(P.entitiesView) && { key: '/entities', icon: <ApartmentOutlined />, label: 'Entities' },
-      can(P.usersView) && { key: '/users', icon: <UserOutlined />, label: 'Users' },
-      (can(P.rolesView) || can(P.rolesManage)) && { key: '/roles', icon: <SafetyOutlined />, label: 'Roles & Permissions' },
-      can(P.auditView) && { key: '/audit', icon: <AuditOutlined />, label: 'Audit Log' },
+      open('/entities') && { key: '/entities', icon: <ApartmentOutlined />, label: 'Entities' },
+      open('/users') && { key: '/users', icon: <UserOutlined />, label: 'Users' },
+      open('/roles') && { key: '/roles', icon: <SafetyOutlined />, label: 'Roles & Permissions' },
+      open('/audit') && { key: '/audit', icon: <AuditOutlined />, label: 'Audit Log' },
     ].filter(Boolean) as MenuProps['items']
 
     // HR and Payroll have real screens; other modules still show the placeholder.
     const hr: MenuProps['items'] = [
-      can(P.employeesView) && { key: '/hr/employees', icon: <IdcardOutlined />, label: 'Employees' },
-      can(P.attendanceView) && { key: '/hr/attendance', icon: <CalendarOutlined />, label: 'Attendance' },
+      open('/hr/employees') && { key: '/hr/employees', icon: <IdcardOutlined />, label: 'Employees' },
+      open('/hr/attendance') && { key: '/hr/attendance', icon: <CalendarOutlined />, label: 'Attendance' },
       { key: '/hr/leave', icon: <ScheduleOutlined />, label: <Badge count={pending} size="small" offset={[10, 0]}>Leave</Badge> },
-      (can(P.departmentsView) || can(P.departmentsCreate)) && { key: '/hr/structure', icon: <ClusterOutlined />, label: 'Departments' },
+      open('/hr/structure') && { key: '/hr/structure', icon: <ClusterOutlined />, label: 'Departments' },
     ].filter(Boolean) as MenuProps['items']
     const payroll: MenuProps['items'] = [
-      can(P.payrollView) && { key: '/payroll', icon: <WalletOutlined />, label: 'Payroll runs' },
-      (can(P.payrollSettings) || can(P.hrSettings)) && { key: '/payroll/settings', icon: <SettingOutlined />, label: 'HR & payroll settings' },
+      open('/payroll') && { key: '/payroll', icon: <WalletOutlined />, label: 'Payroll runs' },
+      open('/payroll/settings') && { key: '/payroll/settings', icon: <SettingOutlined />, label: 'HR & payroll settings' },
     ].filter(Boolean) as MenuProps['items']
 
-    const has = (prefix: string) => [...held].some(p => p.startsWith(prefix))
     const finance: MenuProps['items'] = [
-      can('finance.reports.view') && { key: '/finance', icon: <FundOutlined />, label: 'Overview' },
-      has('finance.invoices.') && { key: '/finance/invoices', icon: <FileTextOutlined />, label: 'Sales invoices' },
-      has('finance.bills.') && { key: '/finance/bills', icon: <FileDoneOutlined />, label: 'Purchase bills' },
-      can('finance.payments.view') && { key: '/finance/payments', icon: <SwapOutlined />, label: 'Payments' },
-      has('finance.contacts.') && { key: '/finance/contacts', icon: <ContactsOutlined />, label: 'Customers & vendors' },
-      can('finance.journals.view') && { key: '/finance/journals', icon: <BookOutlined />, label: 'Journal entries' },
-      can('finance.reports.view') && { key: '/finance/reports', icon: <BarChartOutlined />, label: 'Reports' },
-      (can('finance.settings.manage') || can('finance.accounts.view')) && { key: '/finance/settings', icon: <SettingOutlined />, label: 'Accounting setup' },
+      open('/finance') && { key: '/finance', icon: <FundOutlined />, label: 'Overview' },
+      open('/finance/invoices') && { key: '/finance/invoices', icon: <FileTextOutlined />, label: 'Sales invoices' },
+      open('/finance/bills') && { key: '/finance/bills', icon: <FileDoneOutlined />, label: 'Purchase bills' },
+      open('/finance/payments') && { key: '/finance/payments', icon: <SwapOutlined />, label: 'Payments' },
+      open('/finance/contacts') && { key: '/finance/contacts', icon: <ContactsOutlined />, label: 'Customers & vendors' },
+      open('/finance/journals') && { key: '/finance/journals', icon: <BookOutlined />, label: 'Journal entries' },
+      open('/finance/reports') && { key: '/finance/reports', icon: <BarChartOutlined />, label: 'Reports' },
+      open('/finance/settings') && { key: '/finance/settings', icon: <SettingOutlined />, label: 'Accounting setup' },
     ].filter(Boolean) as MenuProps['items']
 
     const inventory: MenuProps['items'] = [
-      can('inventory.stock.view') && { key: '/inventory/stock', icon: <DatabaseOutlined />, label: 'Stock' },
-      (can('inventory.stock.issue') || can('inventory.stock.transfer') || can('inventory.stock.adjust') || can('inventory.stock.view')) && { key: '/inventory/transactions', icon: <RetweetOutlined />, label: 'Stock transactions' },
-      (has('inventory.items.') || has('inventory.warehouses.')) && { key: '/inventory/setup', icon: <AppstoreOutlined />, label: 'Items & warehouses' },
+      open('/inventory/stock') && { key: '/inventory/stock', icon: <DatabaseOutlined />, label: 'Stock' },
+      open('/inventory/transactions') && { key: '/inventory/transactions', icon: <RetweetOutlined />, label: 'Stock transactions' },
+      open('/inventory/setup') && { key: '/inventory/setup', icon: <AppstoreOutlined />, label: 'Items & warehouses' },
     ].filter(Boolean) as MenuProps['items']
     const procurement: MenuProps['items'] = [
-      has('procurement.purchase_requests.') && { key: '/procurement/requests', icon: <SolutionOutlined />, label: 'Purchase requests' },
-      (has('procurement.purchase_orders.') || has('procurement.goods_receipts.')) && { key: '/procurement/orders', icon: <ShoppingOutlined />, label: 'Purchase orders & receipts' },
+      open('/procurement/requests') && { key: '/procurement/requests', icon: <SolutionOutlined />, label: 'Purchase requests' },
+      open('/procurement/orders') && { key: '/procurement/orders', icon: <ShoppingOutlined />, label: 'Purchase orders & receipts' },
     ].filter(Boolean) as MenuProps['items']
 
     const hotel: MenuProps['items'] = [
-      can('hotel.reservations.view') && { key: '/hotel/front-desk', icon: <BellOutlined />, label: 'Front desk' },
-      can('hotel.reservations.view') && { key: '/hotel/reservations', icon: <CalendarTwoTone twoToneColor="#8c8c8c" />, label: 'Reservations' },
-      can('hotel.housekeeping.view') && { key: '/hotel/housekeeping', icon: <ClearOutlined />, label: 'Housekeeping' },
-      can('hotel.rooms.view') && { key: '/hotel/setup', icon: <KeyOutlined />, label: 'Rooms & rates' },
-      can('hotel.reports.view') && { key: '/hotel/reports', icon: <LineChartOutlined />, label: 'Hotel performance' },
+      open('/hotel/front-desk') && { key: '/hotel/front-desk', icon: <BellOutlined />, label: 'Front desk' },
+      open('/hotel/reservations') && { key: '/hotel/reservations', icon: <CalendarTwoTone twoToneColor="#8c8c8c" />, label: 'Reservations' },
+      open('/hotel/housekeeping') && { key: '/hotel/housekeeping', icon: <ClearOutlined />, label: 'Housekeeping' },
+      open('/hotel/setup') && { key: '/hotel/setup', icon: <KeyOutlined />, label: 'Rooms & rates' },
+      open('/hotel/reports') && { key: '/hotel/reports', icon: <LineChartOutlined />, label: 'Hotel performance' },
     ].filter(Boolean) as MenuProps['items']
 
     const travel: MenuProps['items'] = [
-      (can('travel.bookings.view') || can('tourism.departures.view')) && { key: '/travel', icon: <GlobalOutlined />, label: 'Overview' },
-      can('travel.bookings.view') && { key: '/travel/bookings', icon: <CarryOutOutlined />, label: 'Bookings' },
-      (can('tourism.departures.view') || can('travel.bookings.create')) && { key: '/tours/departures', icon: <FlagOutlined />, label: 'Departures' },
-      (has('tourism.packages.') || has('tourism.guides.')) && { key: '/tours/packages', icon: <ReadOutlined />, label: 'Packages & guides' },
+      open('/travel') && { key: '/travel', icon: <GlobalOutlined />, label: 'Overview' },
+      open('/travel/bookings') && { key: '/travel/bookings', icon: <CarryOutOutlined />, label: 'Bookings' },
+      open('/tours/departures') && { key: '/tours/departures', icon: <FlagOutlined />, label: 'Departures' },
+      open('/tours/packages') && { key: '/tours/packages', icon: <ReadOutlined />, label: 'Packages & guides' },
     ].filter(Boolean) as MenuProps['items']
 
     const logistics: MenuProps['items'] = [
-      (can('logistics.shipments.view') || can('logistics.fleet.view')) && { key: '/logistics', icon: <CarOutlined />, label: 'Overview' },
-      can('logistics.shipments.view') && { key: '/logistics/consignments', icon: <InboxOutlined />, label: 'Consignments' },
-      can('logistics.shipments.view') && { key: '/logistics/trips', icon: <SwapOutlined />, label: 'Trips & load sheets' },
-      (has('logistics.fleet.') || has('logistics.drivers.') || has('logistics.routes.')) && { key: '/logistics/fleet', icon: <ClusterOutlined />, label: 'Fleet & routes' },
-      (can('logistics.shipments.edit') || can('logistics.cod.remit')) && { key: '/logistics/billing', icon: <DollarOutlined />, label: 'COD & billing' },
+      open('/logistics') && { key: '/logistics', icon: <CarOutlined />, label: 'Overview' },
+      open('/logistics/consignments') && { key: '/logistics/consignments', icon: <InboxOutlined />, label: 'Consignments' },
+      open('/logistics/trips') && { key: '/logistics/trips', icon: <SwapOutlined />, label: 'Trips & load sheets' },
+      open('/logistics/fleet') && { key: '/logistics/fleet', icon: <ClusterOutlined />, label: 'Fleet & routes' },
+      open('/logistics/billing') && { key: '/logistics/billing', icon: <DollarOutlined />, label: 'COD & billing' },
     ].filter(Boolean) as MenuProps['items']
 
     const ngo: MenuProps['items'] = [
-      has('ngo.') && { key: '/ngo', icon: <HeartOutlined />, label: 'Overview' },
-      can('ngo.grants.view') && { key: '/ngo/grants', icon: <FileDoneOutlined />, label: 'Grants' },
-      (can('ngo.donations.view') || can('ngo.donors.view')) && { key: '/ngo/donations', icon: <DollarOutlined />, label: 'Donors & donations' },
-      can('ngo.beneficiaries.view') && { key: '/ngo/beneficiaries', icon: <TeamOutlined />, label: 'Beneficiaries' },
-      (can('ngo.funds.view') || can('ngo.programs.view')) && { key: '/ngo/funds', icon: <BankOutlined />, label: 'Funds & programs' },
-      can('ngo.reports.view') && { key: '/ngo/reports', icon: <BarChartOutlined />, label: 'NGO reports' },
+      open('/ngo') && { key: '/ngo', icon: <HeartOutlined />, label: 'Overview' },
+      open('/ngo/grants') && { key: '/ngo/grants', icon: <FileDoneOutlined />, label: 'Grants' },
+      open('/ngo/donations') && { key: '/ngo/donations', icon: <DollarOutlined />, label: 'Donors & donations' },
+      open('/ngo/beneficiaries') && { key: '/ngo/beneficiaries', icon: <TeamOutlined />, label: 'Beneficiaries' },
+      open('/ngo/funds') && { key: '/ngo/funds', icon: <BankOutlined />, label: 'Funds & programs' },
+      open('/ngo/reports') && { key: '/ngo/reports', icon: <BarChartOutlined />, label: 'NGO reports' },
     ].filter(Boolean) as MenuProps['items']
 
     const projects: MenuProps['items'] = [
-      can('projects.projects.view') && { key: '/projects', icon: <ProjectOutlined />, label: 'Overview' },
-      can('projects.projects.view') && { key: '/projects/list', icon: <AppstoreOutlined />, label: 'Projects & boards' },
-      can('projects.timesheets.create') && { key: '/timesheet', icon: <ScheduleOutlined />, label: 'My timesheet' },
-      can('projects.timesheets.approve') && { key: '/projects/approvals', icon: <AuditOutlined />, label: 'Time approvals' },
-      can('projects.clients.view') && { key: '/projects/clients', icon: <ContactsOutlined />, label: 'Clients' },
-      can('projects.reports.view') && { key: '/projects/utilization', icon: <LineChartOutlined />, label: 'Utilization' },
+      open('/projects') && { key: '/projects', icon: <ProjectOutlined />, label: 'Overview' },
+      open('/projects/list') && { key: '/projects/list', icon: <AppstoreOutlined />, label: 'Projects & boards' },
+      open('/timesheet') && { key: '/timesheet', icon: <ScheduleOutlined />, label: 'My timesheet' },
+      open('/projects/approvals') && { key: '/projects/approvals', icon: <AuditOutlined />, label: 'Time approvals' },
+      open('/projects/clients') && { key: '/projects/clients', icon: <ContactsOutlined />, label: 'Clients' },
+      open('/projects/utilization') && { key: '/projects/utilization', icon: <LineChartOutlined />, label: 'Utilization' },
     ].filter(Boolean) as MenuProps['items']
 
     const modules = BUSINESS_MODULES.filter(m => hasModule(m.code) && !['hr', 'payroll', 'finance', 'inventory', 'procurement', 'hotel', 'travel', 'tourism', 'logistics', 'ngo', 'projects'].includes(m.code))
@@ -199,7 +201,12 @@ export default function AppLayout() {
           </Dropdown>
         </Header>
         <Content style={{ padding: screens.md ? 24 : 16 }}>
-          <Outlet />
+          {/* Pages load on first visit; keep the menu and header while they do. */}
+          <ErrorBoundary key={location.pathname}>
+            <Suspense fallback={<Spin style={{ display: 'block', margin: '80px auto' }} />}>
+              <Outlet />
+            </Suspense>
+          </ErrorBoundary>
         </Content>
       </Layout>
     </Layout>

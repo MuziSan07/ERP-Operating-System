@@ -1,36 +1,90 @@
+import { lazy, useMemo, type ComponentType, type ReactNode } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { Spin } from 'antd'
+import { Result, Spin } from 'antd'
 import { useAuth } from './auth/AuthContext'
+import { canOpen } from './auth/routeAccess'
 import AppLayout from './layout/AppLayout'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
-import EntitiesPage from './pages/EntitiesPage'
-import UsersPage from './pages/UsersPage'
-import RolesPage from './pages/RolesPage'
-import TenantsPage from './pages/TenantsPage'
-import AuditPage from './pages/AuditPage'
-import ProfilePage from './pages/ProfilePage'
-import ModulePlaceholder from './pages/ModulePlaceholder'
-import MyWorkspacePage from './pages/hr/MyWorkspacePage'
-import EmployeesPage from './pages/hr/EmployeesPage'
-import EmployeeDetailPage from './pages/hr/EmployeeDetailPage'
-import AttendancePage from './pages/hr/AttendancePage'
-import LeavePage from './pages/hr/LeavePage'
-import OrgStructurePage from './pages/hr/OrgStructurePage'
-import PayrollRunsPage from './pages/payroll/PayrollRunsPage'
-import PayrollRunDetailPage from './pages/payroll/PayrollRunDetailPage'
-import PayrollSettingsPage from './pages/payroll/PayrollSettingsPage'
-import DocumentsPage from './pages/finance/DocumentsPage'
-import { ContactsPage, JournalsPage, PaymentsPage } from './pages/finance/LedgerPages'
-import ReportsPage, { FinanceDashboardPage } from './pages/finance/ReportsPage'
-import FinanceSettingsPage from './pages/finance/FinanceSettingsPage'
-import { InventorySetupPage, StockPage, StockTransactionsPage } from './pages/inventory/InventoryPages'
-import { PurchaseOrdersPage, PurchaseRequestsPage } from './pages/inventory/ProcurementPages'
-import { FrontDeskPage, HotelReportsPage, HotelSetupPage, HousekeepingPage, ReservationsPage } from './pages/hotel/HotelPages'
-import { BookingsPage, DeparturesPage, PackagesPage, TravelDashboardPage } from './pages/travel/TravelPages'
-import { CodBillingPage, ConsignmentsPage, FleetPage, LogisticsDashboardPage, TripsPage } from './pages/logistics/LogisticsPages'
-import { BeneficiariesPage, DonationsPage, FundsPage, GrantsPage, NgoDashboardPage, NgoReportsPage } from './pages/ngo/NgoPages'
-import { ClientsPage, MyTimesheetPage, ProjectsDashboardPage, ProjectsPage, TimeApprovalsPage, UtilizationPage } from './pages/projects/ProjectPages'
+
+// Every page is loaded on first visit, so a payroll clerk never downloads the hotel or NGO screens.
+// Pages of one module share a chunk (they come from the same file).
+type Loader = () => Promise<Record<string, unknown>>
+const page = (load: Loader, name = 'default') =>
+  lazy(async () => ({ default: (await load())[name] as ComponentType<Record<string, unknown>> }))
+
+const hr = () => import('./pages/hr/MyWorkspacePage')
+const EntitiesPage = page(() => import('./pages/EntitiesPage'))
+const UsersPage = page(() => import('./pages/UsersPage'))
+const RolesPage = page(() => import('./pages/RolesPage'))
+const TenantsPage = page(() => import('./pages/TenantsPage'))
+const AuditPage = page(() => import('./pages/AuditPage'))
+const ProfilePage = page(() => import('./pages/ProfilePage'))
+const ModulePlaceholder = page(() => import('./pages/ModulePlaceholder'))
+const MyWorkspacePage = page(hr)
+const EmployeesPage = page(() => import('./pages/hr/EmployeesPage'))
+const EmployeeDetailPage = page(() => import('./pages/hr/EmployeeDetailPage'))
+const AttendancePage = page(() => import('./pages/hr/AttendancePage'))
+const LeavePage = page(() => import('./pages/hr/LeavePage'))
+const OrgStructurePage = page(() => import('./pages/hr/OrgStructurePage'))
+const PayrollRunsPage = page(() => import('./pages/payroll/PayrollRunsPage'))
+const PayrollRunDetailPage = page(() => import('./pages/payroll/PayrollRunDetailPage'))
+const PayrollSettingsPage = page(() => import('./pages/payroll/PayrollSettingsPage'))
+const DocumentsPage = page(() => import('./pages/finance/DocumentsPage'))
+const ledger = () => import('./pages/finance/LedgerPages')
+const ContactsPage = page(ledger, 'ContactsPage')
+const JournalsPage = page(ledger, 'JournalsPage')
+const PaymentsPage = page(ledger, 'PaymentsPage')
+const reports = () => import('./pages/finance/ReportsPage')
+const ReportsPage = page(reports)
+const FinanceDashboardPage = page(reports, 'FinanceDashboardPage')
+const FinanceSettingsPage = page(() => import('./pages/finance/FinanceSettingsPage'))
+const inventory = () => import('./pages/inventory/InventoryPages')
+const InventorySetupPage = page(inventory, 'InventorySetupPage')
+const StockPage = page(inventory, 'StockPage')
+const StockTransactionsPage = page(inventory, 'StockTransactionsPage')
+const procurement = () => import('./pages/inventory/ProcurementPages')
+const PurchaseOrdersPage = page(procurement, 'PurchaseOrdersPage')
+const PurchaseRequestsPage = page(procurement, 'PurchaseRequestsPage')
+const hotel = () => import('./pages/hotel/HotelPages')
+const FrontDeskPage = page(hotel, 'FrontDeskPage')
+const HotelReportsPage = page(hotel, 'HotelReportsPage')
+const HotelSetupPage = page(hotel, 'HotelSetupPage')
+const HousekeepingPage = page(hotel, 'HousekeepingPage')
+const ReservationsPage = page(hotel, 'ReservationsPage')
+const travel = () => import('./pages/travel/TravelPages')
+const BookingsPage = page(travel, 'BookingsPage')
+const DeparturesPage = page(travel, 'DeparturesPage')
+const PackagesPage = page(travel, 'PackagesPage')
+const TravelDashboardPage = page(travel, 'TravelDashboardPage')
+const logistics = () => import('./pages/logistics/LogisticsPages')
+const CodBillingPage = page(logistics, 'CodBillingPage')
+const ConsignmentsPage = page(logistics, 'ConsignmentsPage')
+const FleetPage = page(logistics, 'FleetPage')
+const LogisticsDashboardPage = page(logistics, 'LogisticsDashboardPage')
+const TripsPage = page(logistics, 'TripsPage')
+const ngo = () => import('./pages/ngo/NgoPages')
+const BeneficiariesPage = page(ngo, 'BeneficiariesPage')
+const DonationsPage = page(ngo, 'DonationsPage')
+const FundsPage = page(ngo, 'FundsPage')
+const GrantsPage = page(ngo, 'GrantsPage')
+const NgoDashboardPage = page(ngo, 'NgoDashboardPage')
+const NgoReportsPage = page(ngo, 'NgoReportsPage')
+const projects = () => import('./pages/projects/ProjectPages')
+const ClientsPage = page(projects, 'ClientsPage')
+const MyTimesheetPage = page(projects, 'MyTimesheetPage')
+const ProjectsDashboardPage = page(projects, 'ProjectsDashboardPage')
+const ProjectsPage = page(projects, 'ProjectsPage')
+const TimeApprovalsPage = page(projects, 'TimeApprovalsPage')
+const UtilizationPage = page(projects, 'UtilizationPage')
+
+/** Shows "no access" for a page the user lacks permission for, instead of an empty screen full of failed requests. */
+function Guard({ path, children }: { path: string; children: ReactNode }) {
+  const { me } = useAuth()
+  const held = useMemo(() => new Set(me?.entities.flatMap(e => e.permissions) ?? []), [me])
+  if (!canOpen(path, held)) return <Result status="403" title="No access" subTitle="You don't have permission to open this page. Ask your administrator if you need it." />
+  return <>{children}</>
+}
 
 export default function App() {
   const { me, loading, isPlatformAdmin } = useAuth()
@@ -45,6 +99,64 @@ export default function App() {
     )
   }
 
+  // [path, element]; the access rule comes from ROUTE_ACCESS (detail routes reuse their list page's rule).
+  const routes: [string, ReactNode, string?][] = [
+    ['/', <DashboardPage />],
+    ['/entities', <EntitiesPage />],
+    ['/users', <UsersPage />],
+    ['/roles', <RolesPage />],
+    ['/audit', <AuditPage />],
+    ['/me', <MyWorkspacePage />],
+    ['/hr/employees', <EmployeesPage />],
+    ['/hr/employees/:id', <EmployeeDetailPage />, '/hr/employees'],
+    ['/hr/attendance', <AttendancePage />],
+    ['/hr/leave', <LeavePage />],
+    ['/hr/structure', <OrgStructurePage />],
+    ['/payroll', <PayrollRunsPage />],
+    ['/payroll/runs/:id', <PayrollRunDetailPage />, '/payroll'],
+    ['/payroll/settings', <PayrollSettingsPage />],
+    ['/finance', <FinanceDashboardPage />],
+    ['/finance/invoices', <DocumentsPage kind="Invoice" />],
+    ['/finance/bills', <DocumentsPage kind="Bill" />],
+    ['/finance/payments', <PaymentsPage />],
+    ['/finance/journals', <JournalsPage />],
+    ['/finance/contacts', <ContactsPage />],
+    ['/finance/reports', <ReportsPage />],
+    ['/finance/settings', <FinanceSettingsPage />],
+    ['/inventory/stock', <StockPage />],
+    ['/inventory/transactions', <StockTransactionsPage />],
+    ['/inventory/setup', <InventorySetupPage />],
+    ['/procurement/requests', <PurchaseRequestsPage />],
+    ['/procurement/orders', <PurchaseOrdersPage />],
+    ['/hotel/front-desk', <FrontDeskPage />],
+    ['/hotel/reservations', <ReservationsPage />],
+    ['/hotel/housekeeping', <HousekeepingPage />],
+    ['/hotel/setup', <HotelSetupPage />],
+    ['/hotel/reports', <HotelReportsPage />],
+    ['/travel', <TravelDashboardPage />],
+    ['/travel/bookings', <BookingsPage />],
+    ['/tours/departures', <DeparturesPage />],
+    ['/tours/packages', <PackagesPage />],
+    ['/logistics', <LogisticsDashboardPage />],
+    ['/logistics/consignments', <ConsignmentsPage />],
+    ['/logistics/trips', <TripsPage />],
+    ['/logistics/fleet', <FleetPage />],
+    ['/logistics/billing', <CodBillingPage />],
+    ['/ngo', <NgoDashboardPage />],
+    ['/ngo/grants', <GrantsPage />],
+    ['/ngo/donations', <DonationsPage />],
+    ['/ngo/beneficiaries', <BeneficiariesPage />],
+    ['/ngo/funds', <FundsPage />],
+    ['/ngo/reports', <NgoReportsPage />],
+    ['/projects', <ProjectsDashboardPage />],
+    ['/projects/list', <ProjectsPage />],
+    ['/projects/clients', <ClientsPage />],
+    ['/projects/approvals', <TimeApprovalsPage />],
+    ['/projects/utilization', <UtilizationPage />],
+    ['/timesheet', <MyTimesheetPage />],
+    ['/m/:module', <ModulePlaceholder />],
+  ]
+
   return (
     <Routes>
       <Route element={<AppLayout />}>
@@ -54,62 +166,7 @@ export default function App() {
             <Route path="/platform/tenants" element={<TenantsPage />} />
           </>
         ) : (
-          <>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/entities" element={<EntitiesPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/roles" element={<RolesPage />} />
-            <Route path="/audit" element={<AuditPage />} />
-            <Route path="/me" element={<MyWorkspacePage />} />
-            <Route path="/hr/employees" element={<EmployeesPage />} />
-            <Route path="/hr/employees/:id" element={<EmployeeDetailPage />} />
-            <Route path="/hr/attendance" element={<AttendancePage />} />
-            <Route path="/hr/leave" element={<LeavePage />} />
-            <Route path="/hr/structure" element={<OrgStructurePage />} />
-            <Route path="/payroll" element={<PayrollRunsPage />} />
-            <Route path="/payroll/runs/:id" element={<PayrollRunDetailPage />} />
-            <Route path="/payroll/settings" element={<PayrollSettingsPage />} />
-            <Route path="/finance" element={<FinanceDashboardPage />} />
-            <Route path="/finance/invoices" element={<DocumentsPage kind="Invoice" />} />
-            <Route path="/finance/bills" element={<DocumentsPage kind="Bill" />} />
-            <Route path="/finance/payments" element={<PaymentsPage />} />
-            <Route path="/finance/journals" element={<JournalsPage />} />
-            <Route path="/finance/contacts" element={<ContactsPage />} />
-            <Route path="/finance/reports" element={<ReportsPage />} />
-            <Route path="/finance/settings" element={<FinanceSettingsPage />} />
-            <Route path="/inventory/stock" element={<StockPage />} />
-            <Route path="/inventory/transactions" element={<StockTransactionsPage />} />
-            <Route path="/inventory/setup" element={<InventorySetupPage />} />
-            <Route path="/procurement/requests" element={<PurchaseRequestsPage />} />
-            <Route path="/procurement/orders" element={<PurchaseOrdersPage />} />
-            <Route path="/hotel/front-desk" element={<FrontDeskPage />} />
-            <Route path="/hotel/reservations" element={<ReservationsPage />} />
-            <Route path="/hotel/housekeeping" element={<HousekeepingPage />} />
-            <Route path="/hotel/setup" element={<HotelSetupPage />} />
-            <Route path="/hotel/reports" element={<HotelReportsPage />} />
-            <Route path="/travel" element={<TravelDashboardPage />} />
-            <Route path="/travel/bookings" element={<BookingsPage />} />
-            <Route path="/tours/departures" element={<DeparturesPage />} />
-            <Route path="/tours/packages" element={<PackagesPage />} />
-            <Route path="/logistics" element={<LogisticsDashboardPage />} />
-            <Route path="/logistics/consignments" element={<ConsignmentsPage />} />
-            <Route path="/logistics/trips" element={<TripsPage />} />
-            <Route path="/logistics/fleet" element={<FleetPage />} />
-            <Route path="/logistics/billing" element={<CodBillingPage />} />
-            <Route path="/ngo" element={<NgoDashboardPage />} />
-            <Route path="/ngo/grants" element={<GrantsPage />} />
-            <Route path="/ngo/donations" element={<DonationsPage />} />
-            <Route path="/ngo/beneficiaries" element={<BeneficiariesPage />} />
-            <Route path="/ngo/funds" element={<FundsPage />} />
-            <Route path="/ngo/reports" element={<NgoReportsPage />} />
-            <Route path="/projects" element={<ProjectsDashboardPage />} />
-            <Route path="/projects/list" element={<ProjectsPage />} />
-            <Route path="/projects/clients" element={<ClientsPage />} />
-            <Route path="/projects/approvals" element={<TimeApprovalsPage />} />
-            <Route path="/projects/utilization" element={<UtilizationPage />} />
-            <Route path="/timesheet" element={<MyTimesheetPage />} />
-            <Route path="/m/:module" element={<ModulePlaceholder />} />
-          </>
+          routes.map(([path, element, rule]) => <Route key={path} path={path} element={<Guard path={rule ?? path}>{element}</Guard>} />)
         )}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
