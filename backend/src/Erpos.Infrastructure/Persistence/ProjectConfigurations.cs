@@ -37,6 +37,9 @@ public class ProjectMilestoneConfig : IEntityTypeConfiguration<ProjectMilestone>
 {
     public void Configure(EntityTypeBuilder<ProjectMilestone> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.InvoiceId).IsConcurrencyToken();
+        b.Property(x => x.CompletedOn).IsConcurrencyToken();
         b.ToTable("prj_milestones");
         b.Property(x => x.Name).HasMaxLength(150).IsRequired();
     }
@@ -60,6 +63,8 @@ public class TimeEntryConfig : IEntityTypeConfiguration<TimeEntry>
 {
     public void Configure(EntityTypeBuilder<TimeEntry> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Status).IsConcurrencyToken();
         b.ToTable("prj_time_entries");
         b.Property(x => x.Hours).HasPrecision(5, 2);
         b.Property(x => x.Description).HasMaxLength(500);

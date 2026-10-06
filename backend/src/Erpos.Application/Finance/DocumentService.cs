@@ -11,7 +11,16 @@ namespace Erpos.Application.Finance;
 /// Sales invoices and purchase bills. Draft → Approve (posts the journal, gets its number) → Open → paid by payments.
 /// Invoice: Dr Receivable (total) / Cr Income (net) / Cr Output tax. Bill: Dr Expense / Dr Input tax / Cr Payable.
 /// </summary>
-public class DocumentService(IAppDbContext db, IAccessService access, ICurrentUser currentUser, LedgerService ledger)
+/// <summary>
+/// Lets a module undo its link to an invoice or bill when Finance voids it (hours back to "approved", consignment back to
+/// "unbilled", grant spending reversed…). Handlers run inside the void's transaction; the caller saves.
+/// </summary>
+public interface IDocumentVoidHandler
+{
+    Task OnVoidedAsync(FinanceDocument document, CancellationToken ct);
+}
+
+public class DocumentService(IAppDbContext db, IAccessService access, ICurrentUser currentUser, LedgerService ledger, IEnumerable<IDocumentVoidHandler> voidHandlers)
 {
     private static string Perm(DocumentKind kind, string action) => $"finance.{(kind == DocumentKind.Invoice ? "invoices" : "bills")}.{action}";
     private static string Prefix(DocumentKind kind) => kind == DocumentKind.Invoice ? "INV" : "BILL";
@@ -179,6 +188,7 @@ public class DocumentService(IAppDbContext db, IAccessService access, ICurrentUs
             poLine.BilledBaseValue -= l.MatchedBaseValue;
         }
         await UpdatePurchaseOrderStatusAsync(doc.PurchaseOrderId, ct);
+        foreach (var handler in voidHandlers) await handler.OnVoidedAsync(doc, ct);
         await db.SaveChangesAsync(ct);
         return await GetAsync(id, ct);
     }
