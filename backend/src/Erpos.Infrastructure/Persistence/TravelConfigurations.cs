@@ -84,6 +84,8 @@ public class TravelBookingConfig : IEntityTypeConfiguration<TravelBooking>
 {
     public void Configure(EntityTypeBuilder<TravelBooking> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Status).IsConcurrencyToken();
         b.ToTable("trv_bookings");
         b.Property(x => x.Number).HasMaxLength(30);
         b.Property(x => x.ContactPhone).HasMaxLength(50);
@@ -132,6 +134,8 @@ public class BookingDepositConfig : IEntityTypeConfiguration<BookingDeposit>
 {
     public void Configure(EntityTypeBuilder<BookingDeposit> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Applied).IsConcurrencyToken();
         b.ToTable("trv_deposits");
         b.Property(x => x.Reference).HasMaxLength(100);
         b.HasIndex(x => x.TravelBookingId);

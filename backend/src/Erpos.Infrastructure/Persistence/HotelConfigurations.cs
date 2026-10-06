@@ -53,6 +53,9 @@ public class ReservationConfig : IEntityTypeConfiguration<Reservation>
 {
     public void Configure(EntityTypeBuilder<Reservation> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Status).IsConcurrencyToken();
+        b.Property(x => x.InvoiceId).IsConcurrencyToken();
         b.ToTable("htl_reservations");
         b.Property(x => x.Number).HasMaxLength(30);
         b.Property(x => x.ExternalReference).HasMaxLength(100);

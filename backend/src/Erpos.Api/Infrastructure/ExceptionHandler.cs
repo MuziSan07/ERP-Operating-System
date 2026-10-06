@@ -13,6 +13,7 @@ public class ExceptionHandler(ILogger<ExceptionHandler> logger, IHostEnvironment
         {
             AppException app => (app.StatusCode, app.Message),
             Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException => (409, "This record was changed by someone else at the same moment. Please reload and try again."),
+            _ when IsLockConflict(ex) => (409, "Someone else was saving related records at the same moment. Please try again."),
             _ => (500, "An unexpected error occurred.")
         };
         if (status == 500) logger.LogError(ex, "Unhandled exception");
@@ -25,5 +26,13 @@ public class ExceptionHandler(ILogger<ExceptionHandler> logger, IHostEnvironment
             Detail = status == 500 && env.IsDevelopment() ? ex.ToString() : null
         }, ct);
         return true;
+    }
+
+    /// <summary>MySQL deadlock (1213) or lock-wait timeout (1205), possibly wrapped by EF.</summary>
+    private static bool IsLockConflict(Exception ex)
+    {
+        for (var e = ex; e != null; e = e.InnerException)
+            if (e is MySql.Data.MySqlClient.MySqlException { Number: 1213 or 1205 }) return true;
+        return false;
     }
 }

@@ -120,6 +120,8 @@ public class RefreshTokenConfig : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.RevokedAt).IsConcurrencyToken();
         b.ToTable("refresh_tokens");
         b.Property(x => x.TokenHash).HasMaxLength(128).IsRequired();
         b.HasIndex(x => x.TokenHash).IsUnique();

@@ -120,6 +120,9 @@ public class FinanceDocumentConfig : IEntityTypeConfiguration<FinanceDocument>
 {
     public void Configure(EntityTypeBuilder<FinanceDocument> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Status).IsConcurrencyToken();
+        b.Property(x => x.AmountPaid).IsConcurrencyToken();
         b.ToTable("fin_documents");
         b.Property(x => x.Number).HasMaxLength(30);
         b.Property(x => x.Reference).HasMaxLength(100);
@@ -151,6 +154,8 @@ public class PaymentConfig : IEntityTypeConfiguration<Payment>
 {
     public void Configure(EntityTypeBuilder<Payment> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.IsVoid).IsConcurrencyToken();
         b.ToTable("fin_payments");
         b.Property(x => x.Number).HasMaxLength(30);
         b.Property(x => x.Reference).HasMaxLength(100);

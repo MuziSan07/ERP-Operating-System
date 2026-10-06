@@ -51,6 +51,10 @@ public class ShipmentConfig : IEntityTypeConfiguration<Shipment>
 {
     public void Configure(EntityTypeBuilder<Shipment> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Status).IsConcurrencyToken();
+        b.Property(x => x.InvoiceId).IsConcurrencyToken();
+        b.Property(x => x.CodRemitted).IsConcurrencyToken();
         b.ToTable("log_shipments");
         b.Property(x => x.Number).HasMaxLength(30);
         foreach (var p in new[] { nameof(Shipment.ShipperName), nameof(Shipment.ConsigneeName), nameof(Shipment.ReceivedBy) }) b.Property(p).HasMaxLength(150);

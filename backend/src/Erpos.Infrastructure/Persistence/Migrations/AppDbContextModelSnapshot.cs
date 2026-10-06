@@ -340,6 +340,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("Applied")
+                        .IsConcurrencyToken()
                         .HasColumnType("tinyint(1)");
 
                     b.Property<Guid>("BankAccountId")
@@ -1309,6 +1310,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<decimal>("AmountPaid")
+                        .IsConcurrencyToken()
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
@@ -1373,6 +1375,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(100)");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<decimal>("Subtotal")
@@ -2227,6 +2230,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("ReceivedDate")
+                        .IsConcurrencyToken()
                         .HasColumnType("date");
 
                     b.Property<int>("Sequence")
@@ -3204,6 +3208,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsVoid")
+                        .IsConcurrencyToken()
                         .HasColumnType("tinyint(1)");
 
                     b.Property<Guid?>("JournalEntryId")
@@ -3354,6 +3359,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
@@ -3694,12 +3700,14 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("CompletedOn")
+                        .IsConcurrencyToken()
                         .HasColumnType("date");
 
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("date");
 
                     b.Property<Guid?>("InvoiceId")
+                        .IsConcurrencyToken()
                         .HasColumnType("char(36)");
 
                     b.Property<string>("Name")
@@ -4066,6 +4074,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.Property<DateTime?>("RevokedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("TokenHash")
@@ -4129,6 +4138,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(36)");
 
                     b.Property<Guid?>("InvoiceId")
+                        .IsConcurrencyToken()
                         .HasColumnType("char(36)");
 
                     b.Property<bool>("IsDeleted")
@@ -4147,6 +4157,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")
@@ -4396,6 +4407,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("CodRemitted")
+                        .IsConcurrencyToken()
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("ConsigneeAddress")
@@ -4455,6 +4467,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(500)");
 
                     b.Property<Guid?>("InvoiceId")
+                        .IsConcurrencyToken()
                         .HasColumnType("char(36)");
 
                     b.Property<bool>("IsDeleted")
@@ -4507,6 +4520,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(50)");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<decimal>("TaxAmount")
@@ -5124,6 +5138,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(300)");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("SubmittedAt")
@@ -5346,6 +5361,7 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .HasColumnType("varchar(30)");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("int");
 
                     b.Property<Guid>("TenantId")

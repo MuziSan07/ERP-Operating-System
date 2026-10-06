@@ -195,6 +195,8 @@ public class PayrollRunConfig : IEntityTypeConfiguration<PayrollRun>
 {
     public void Configure(EntityTypeBuilder<PayrollRun> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.Status).IsConcurrencyToken();
         b.ToTable("pay_runs");
         b.Property(x => x.Notes).HasMaxLength(500);
         b.Property(x => x.Warnings).HasColumnType("text");

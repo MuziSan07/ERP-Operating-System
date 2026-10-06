@@ -242,7 +242,20 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         }
     }
 
+    /// <summary>
+    /// Saves the changes and their audit rows atomically. Inside a request transaction (see the API's transaction filter)
+    /// it simply joins it; on its own it opens a transaction so data and audit can't be split.
+    /// </summary>
     public override async Task<int> SaveChangesAsync(CancellationToken ct = default)
+    {
+        if (Database.CurrentTransaction != null) return await SaveWithAuditAsync(ct);
+        await using var tx = await Database.BeginTransactionAsync(ct);
+        var result = await SaveWithAuditAsync(ct);
+        await tx.CommitAsync(ct);
+        return result;
+    }
+
+    private async Task<int> SaveWithAuditAsync(CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var audits = new List<(EntityEntry Entry, AuditLog Log)>();

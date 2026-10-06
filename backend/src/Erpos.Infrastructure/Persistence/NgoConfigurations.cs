@@ -80,6 +80,8 @@ public class GrantTrancheConfig : IEntityTypeConfiguration<GrantTranche>
 {
     public void Configure(EntityTypeBuilder<GrantTranche> b)
     {
+        // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
+        b.Property(x => x.ReceivedDate).IsConcurrencyToken();
         b.ToTable("ngo_grant_tranches");
         b.Property(x => x.Condition).HasMaxLength(300);
     }

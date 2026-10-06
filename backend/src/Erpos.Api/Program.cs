@@ -16,7 +16,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(o => o.Filters.Add<TransactionFilter>())
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(p => p
