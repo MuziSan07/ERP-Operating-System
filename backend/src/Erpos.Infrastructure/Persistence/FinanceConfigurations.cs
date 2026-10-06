@@ -154,6 +154,7 @@ public class PaymentConfig : IEntityTypeConfiguration<Payment>
 {
     public void Configure(EntityTypeBuilder<Payment> b)
     {
+        b.Property(x => x.WithholdingTaxRateApplied).HasPrecision(9, 6);
         // Concurrency guard: a second simultaneous change to these fails with 409 instead of double-posting.
         b.Property(x => x.IsVoid).IsConcurrencyToken();
         b.ToTable("fin_payments");

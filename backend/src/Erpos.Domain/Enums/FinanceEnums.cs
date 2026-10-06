@@ -30,3 +30,5 @@ public enum DocumentKind { Invoice = 1, Bill = 2 }
 public enum DocumentStatus { Draft = 1, Open = 2, PartiallyPaid = 3, Paid = 4, Void = 5 }
 
 public enum PaymentKind { Receipt = 1, Payment = 2 }
+
+public enum ReconciliationStatus { Draft = 1, Completed = 2 }

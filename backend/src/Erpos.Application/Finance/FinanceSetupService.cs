@@ -197,7 +197,8 @@ public class FinanceSetupService(IAppDbContext db, IAccessService access, ICurre
         return await q.OrderBy(c => c.Name).Select(c => new ContactDto(c.Id, c.Code, c.Name, c.IsCustomer, c.IsVendor, c.Email, c.Phone,
             c.Address, c.City, c.Country, c.Ntn, c.Strn, c.Cnic, c.Currency, c.PaymentTermsDays, c.IsActive,
             db.FinanceDocuments.Where(d => d.ContactId == c.Id && d.Kind == DocumentKind.Invoice && open.Contains(d.Status)).Sum(d => d.BaseTotal - d.BasePaid),
-            db.FinanceDocuments.Where(d => d.ContactId == c.Id && d.Kind == DocumentKind.Bill && open.Contains(d.Status)).Sum(d => d.BaseTotal - d.BasePaid)))
+            db.FinanceDocuments.Where(d => d.ContactId == c.Id && d.Kind == DocumentKind.Bill && open.Contains(d.Status)).Sum(d => d.BaseTotal - d.BasePaid),
+            c.DefaultWhtRateId, c.NotOnActiveTaxpayerList))
             .ToListAsync(ct);
     }
 
@@ -229,6 +230,9 @@ public class FinanceSetupService(IAppDbContext db, IAccessService access, ICurre
         c.Currency = string.IsNullOrWhiteSpace(req.Currency) ? null : req.Currency.Trim().ToUpperInvariant();
         c.PaymentTermsDays = Math.Clamp(req.PaymentTermsDays, 0, 365);
         c.IsActive = req.IsActive;
+        if (req.DefaultWhtRateId is { } wr && !await db.WithholdingTaxRates.AnyAsync(r => r.Id == wr, ct)) throw new NotFoundException("Withholding rate");
+        c.DefaultWhtRateId = req.DefaultWhtRateId;
+        c.NotOnActiveTaxpayerList = req.NotOnActiveTaxpayerList;
         await db.SaveChangesAsync(ct);
         return (await ContactsAsync(null, null, c.Code, ct)).First(x => x.Id == c.Id);
     }

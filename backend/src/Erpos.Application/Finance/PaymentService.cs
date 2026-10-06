@@ -57,6 +57,15 @@ public class PaymentService(IAppDbContext db, IAccessService access, ICurrentUse
         if (LedgerService.Round(req.Allocations.Sum(a => a.Amount)) != LedgerService.Round(req.Amount))
             throw new ValidationException("Allocations must add up to the payment amount.");
 
+        WithholdingTaxRate? wht = null;
+        if (req.WithholdingTaxRateId is { } whtId)
+        {
+            if (receipt) throw new ValidationException("Withholding tax is deducted when paying suppliers, not on receipts.");
+            if (currency != settings.BaseCurrency) throw new ValidationException($"Withholding tax is supported on {settings.BaseCurrency} payments.");
+            wht = await db.WithholdingTaxRates.FirstOrDefaultAsync(r => r.Id == whtId, ct) ?? throw new NotFoundException("Withholding rate");
+            if (!wht.IsActive) throw new ValidationException($"{wht.Name} is inactive.");
+        }
+
         var docIds = req.Allocations.Select(a => a.DocumentId).ToList();
         if (docIds.Distinct().Count() != docIds.Count) throw new ValidationException("A document appears twice.");
         var docs = await db.FinanceDocuments.Where(d => docIds.Contains(d.Id)).ToDictionaryAsync(d => d.Id, ct);
@@ -85,6 +94,8 @@ public class PaymentService(IAppDbContext db, IAccessService access, ICurrentUse
             // Clear the receivable/payable at the document's rate; the final payment clears the exact remainder.
             var baseAmount = a.Amount == balance ? d.BaseTotal - d.BasePaid : LedgerService.Round(a.Amount * d.ExchangeRate);
             clearedBase += baseAmount;
+            // Withholding is charged on the amount excluding sales tax, in proportion to how much of the bill is paid.
+            if (wht != null) payment.WithholdingTaxBase += d.Total == 0 ? a.Amount : LedgerService.Round(a.Amount * d.Subtotal / d.Total);
             payment.Allocations.Add(new PaymentAllocation { PaymentId = payment.Id, DocumentId = d.Id, Amount = a.Amount, BaseAmount = baseAmount });
             lines.Add(receipt
                 ? new LineInput(control, 0, a.Amount, null, d.Number, contact.Id, null, 0, baseAmount)
@@ -95,13 +106,22 @@ public class PaymentService(IAppDbContext db, IAccessService access, ICurrentUse
             d.Status = d.AmountPaid >= d.Total ? DocumentStatus.Paid : DocumentStatus.PartiallyPaid;
         }
 
-        var bankBase = LedgerService.Round(payment.Amount * rate);
+        if (wht != null)
+        {
+            payment.WithholdingTaxRateId = wht.Id;
+            payment.WithholdingTaxRateApplied = contact.NotOnActiveTaxpayerList ? wht.Rate * 2 : wht.Rate;
+            payment.WithholdingTax = LedgerService.Round(payment.WithholdingTaxBase * payment.WithholdingTaxRateApplied);
+            lines.Add(new LineInput(wht.PayableAccountId, 0, payment.WithholdingTax, null, $"Income tax withheld u/s {wht.Section} — {contact.Name}", contact.Id,
+                null, 0, payment.WithholdingTax));
+        }
+        var cash = payment.Amount - payment.WithholdingTax;
+        var bankBase = LedgerService.Round(cash * rate);
         lines.Insert(0, receipt
-            ? new LineInput(bank.Id, payment.Amount, 0, null, contact.Name, contact.Id, null, bankBase, 0)
-            : new LineInput(bank.Id, 0, payment.Amount, null, contact.Name, contact.Id, null, 0, bankBase));
+            ? new LineInput(bank.Id, cash, 0, null, contact.Name, contact.Id, null, bankBase, 0)
+            : new LineInput(bank.Id, 0, cash, null, contact.Name, contact.Id, null, 0, bankBase));
 
-        // Receipt: more base received than cleared = gain. Payment: more base paid than cleared = loss.
-        var fx = receipt ? bankBase - clearedBase : clearedBase - bankBase;
+        // Receipt: more base received than cleared = gain. Payment: more base paid (cash + tax withheld) than cleared = loss.
+        var fx = receipt ? bankBase - clearedBase : clearedBase - bankBase - payment.WithholdingTax;
         if (fx != 0)
         {
             var fxAccount = settings.ExchangeGainLossAccountId ?? throw new ValidationException("Set the exchange gain/loss account in Finance settings.");
@@ -124,6 +144,7 @@ public class PaymentService(IAppDbContext db, IAccessService access, ICurrentUse
         var p = await db.Payments.Include(x => x.Allocations).FirstOrDefaultAsync(x => x.Id == id, ct) ?? throw new NotFoundException("Payment");
         await access.EnsureAsync(Permissions.PaymentsApprove, p.EntityId, ct);
         if (p.IsVoid) throw new ValidationException("Already void.");
+        if (p.WhtDepositId != null) throw new ValidationException("The tax withheld on this payment has already been deposited with FBR; it can't be voided.");
         var entry = await db.JournalEntries.FirstAsync(j => j.Id == p.JournalEntryId, ct);
         await ledger.ReverseAsync(entry, req.Date ?? p.Date, req.Reason ?? "Payment voided", ct);
 
@@ -145,8 +166,11 @@ public class PaymentService(IAppDbContext db, IAccessService access, ICurrentUse
     {
         var rows = await db.Payments.Where(p => ids.Contains(p.Id)).Include(p => p.Entity).Include(p => p.Contact).Include(p => p.BankAccount)
             .Include(p => p.Allocations).ThenInclude(a => a.Document).ToListAsync(ct);
+        var rateIds = rows.Where(p => p.WithholdingTaxRateId != null).Select(p => p.WithholdingTaxRateId!.Value).Distinct().ToList();
+        var sections = await db.WithholdingTaxRates.IgnoreQueryFilters().Where(r => rateIds.Contains(r.Id)).ToDictionaryAsync(r => r.Id, r => r.Section, ct);
         return rows.Select(p => new PaymentDto(p.Id, p.Kind, p.Number, p.EntityId, p.Entity!.Name, p.ContactId, p.Contact!.Name, p.Date,
             p.BankAccountId, $"{p.BankAccount!.Code} {p.BankAccount.Name}", p.Currency, p.ExchangeRate, p.Amount, p.Reference, p.Notes, p.IsVoid,
-            p.JournalEntryId, p.Allocations.Select(a => new AllocationDto(a.DocumentId, a.Document?.Number, a.Amount, a.BaseAmount)).ToList())).ToList();
+            p.JournalEntryId, p.Allocations.Select(a => new AllocationDto(a.DocumentId, a.Document?.Number, a.Amount, a.BaseAmount)).ToList(),
+            p.WithholdingTax, p.Amount - p.WithholdingTax, p.WithholdingTaxRateId == null ? null : sections.GetValueOrDefault(p.WithholdingTaxRateId.Value))).ToList();
     }
 }
