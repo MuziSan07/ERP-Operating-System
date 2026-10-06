@@ -42,12 +42,12 @@ public class DocumentService(IAppDbContext db, IAccessService access, ICurrentUs
         pageSize = Math.Clamp(pageSize, 1, 200);
         var total = await q.CountAsync(ct);
         var rows = await q.OrderByDescending(d => d.Date).ThenByDescending(d => d.CreatedAt).Skip((page - 1) * pageSize).Take(pageSize)
-            .Select(d => new { d.Id, d.Kind, d.Number, EntityName = d.Entity!.Name, d.ContactId, ContactName = d.Contact!.Name, d.Date, d.DueDate,
-                d.Reference, d.Currency, d.Status, d.Total, d.AmountPaid })
+            .Select(d => new { d.Id, d.Kind, d.Number, d.EntityId, EntityName = d.Entity!.Name, d.ContactId, ContactName = d.Contact!.Name, d.Date, d.DueDate,
+                d.Reference, d.Currency, d.Status, d.Subtotal, d.Total, d.AmountPaid })
             .ToListAsync(ct);
         var items = rows.Select(d => new DocumentListItem(d.Id, d.Kind, string.IsNullOrEmpty(d.Number) ? null : d.Number, d.EntityName, d.ContactId,
             d.ContactName, d.Date, d.DueDate, d.Reference, d.Currency, d.Status, d.Total, d.Total - d.AmountPaid,
-            d.Status is DocumentStatus.Open or DocumentStatus.PartiallyPaid && d.DueDate < today ? today.DayNumber - d.DueDate.DayNumber : 0)).ToList();
+            d.Status is DocumentStatus.Open or DocumentStatus.PartiallyPaid && d.DueDate < today ? today.DayNumber - d.DueDate.DayNumber : 0, d.Subtotal, d.EntityId)).ToList();
         return new PagedResult<DocumentListItem>(items, total, page, pageSize);
     }
 

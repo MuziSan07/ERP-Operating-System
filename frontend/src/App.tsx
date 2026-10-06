@@ -39,6 +39,9 @@ const reports = () => import('./pages/finance/ReportsPage')
 const ReportsPage = page(reports)
 const FinanceDashboardPage = page(reports, 'FinanceDashboardPage')
 const FinanceSettingsPage = page(() => import('./pages/finance/FinanceSettingsPage'))
+const compliance = () => import('./pages/finance/CompliancePages')
+const WithholdingPage = page(compliance, 'WithholdingPage')
+const BankReconciliationPage = page(compliance, 'BankReconciliationPage')
 const inventory = () => import('./pages/inventory/InventoryPages')
 const InventorySetupPage = page(inventory, 'InventorySetupPage')
 const StockPage = page(inventory, 'StockPage')
@@ -99,62 +102,64 @@ export default function App() {
     )
   }
 
-  // [path, element]; the access rule comes from ROUTE_ACCESS (detail routes reuse their list page's rule).
-  const routes: [string, ReactNode, string?][] = [
-    ['/', <DashboardPage />],
-    ['/entities', <EntitiesPage />],
-    ['/users', <UsersPage />],
-    ['/roles', <RolesPage />],
-    ['/audit', <AuditPage />],
-    ['/me', <MyWorkspacePage />],
-    ['/hr/employees', <EmployeesPage />],
-    ['/hr/employees/:id', <EmployeeDetailPage />, '/hr/employees'],
-    ['/hr/attendance', <AttendancePage />],
-    ['/hr/leave', <LeavePage />],
-    ['/hr/structure', <OrgStructurePage />],
-    ['/payroll', <PayrollRunsPage />],
-    ['/payroll/runs/:id', <PayrollRunDetailPage />, '/payroll'],
-    ['/payroll/settings', <PayrollSettingsPage />],
-    ['/finance', <FinanceDashboardPage />],
-    ['/finance/invoices', <DocumentsPage kind="Invoice" />],
-    ['/finance/bills', <DocumentsPage kind="Bill" />],
-    ['/finance/payments', <PaymentsPage />],
-    ['/finance/journals', <JournalsPage />],
-    ['/finance/contacts', <ContactsPage />],
-    ['/finance/reports', <ReportsPage />],
-    ['/finance/settings', <FinanceSettingsPage />],
-    ['/inventory/stock', <StockPage />],
-    ['/inventory/transactions', <StockTransactionsPage />],
-    ['/inventory/setup', <InventorySetupPage />],
-    ['/procurement/requests', <PurchaseRequestsPage />],
-    ['/procurement/orders', <PurchaseOrdersPage />],
-    ['/hotel/front-desk', <FrontDeskPage />],
-    ['/hotel/reservations', <ReservationsPage />],
-    ['/hotel/housekeeping', <HousekeepingPage />],
-    ['/hotel/setup', <HotelSetupPage />],
-    ['/hotel/reports', <HotelReportsPage />],
-    ['/travel', <TravelDashboardPage />],
-    ['/travel/bookings', <BookingsPage />],
-    ['/tours/departures', <DeparturesPage />],
-    ['/tours/packages', <PackagesPage />],
-    ['/logistics', <LogisticsDashboardPage />],
-    ['/logistics/consignments', <ConsignmentsPage />],
-    ['/logistics/trips', <TripsPage />],
-    ['/logistics/fleet', <FleetPage />],
-    ['/logistics/billing', <CodBillingPage />],
-    ['/ngo', <NgoDashboardPage />],
-    ['/ngo/grants', <GrantsPage />],
-    ['/ngo/donations', <DonationsPage />],
-    ['/ngo/beneficiaries', <BeneficiariesPage />],
-    ['/ngo/funds', <FundsPage />],
-    ['/ngo/reports', <NgoReportsPage />],
-    ['/projects', <ProjectsDashboardPage />],
-    ['/projects/list', <ProjectsPage />],
-    ['/projects/clients', <ClientsPage />],
-    ['/projects/approvals', <TimeApprovalsPage />],
-    ['/projects/utilization', <UtilizationPage />],
-    ['/timesheet', <MyTimesheetPage />],
-    ['/m/:module', <ModulePlaceholder />],
+  // [path, page]; the access rule comes from ROUTE_ACCESS (detail routes reuse their list page's rule).
+  const routes: [string, () => ReactNode, string?][] = [
+    ['/', () => <DashboardPage />],
+    ['/entities', () => <EntitiesPage />],
+    ['/users', () => <UsersPage />],
+    ['/roles', () => <RolesPage />],
+    ['/audit', () => <AuditPage />],
+    ['/me', () => <MyWorkspacePage />],
+    ['/hr/employees', () => <EmployeesPage />],
+    ['/hr/employees/:id', () => <EmployeeDetailPage />, '/hr/employees'],
+    ['/hr/attendance', () => <AttendancePage />],
+    ['/hr/leave', () => <LeavePage />],
+    ['/hr/structure', () => <OrgStructurePage />],
+    ['/payroll', () => <PayrollRunsPage />],
+    ['/payroll/runs/:id', () => <PayrollRunDetailPage />, '/payroll'],
+    ['/payroll/settings', () => <PayrollSettingsPage />],
+    ['/finance', () => <FinanceDashboardPage />],
+    ['/finance/invoices', () => <DocumentsPage kind="Invoice" />],
+    ['/finance/bills', () => <DocumentsPage kind="Bill" />],
+    ['/finance/payments', () => <PaymentsPage />],
+    ['/finance/journals', () => <JournalsPage />],
+    ['/finance/contacts', () => <ContactsPage />],
+    ['/finance/reports', () => <ReportsPage />],
+    ['/finance/settings', () => <FinanceSettingsPage />],
+    ['/finance/withholding', () => <WithholdingPage />],
+    ['/finance/reconciliation', () => <BankReconciliationPage />],
+    ['/inventory/stock', () => <StockPage />],
+    ['/inventory/transactions', () => <StockTransactionsPage />],
+    ['/inventory/setup', () => <InventorySetupPage />],
+    ['/procurement/requests', () => <PurchaseRequestsPage />],
+    ['/procurement/orders', () => <PurchaseOrdersPage />],
+    ['/hotel/front-desk', () => <FrontDeskPage />],
+    ['/hotel/reservations', () => <ReservationsPage />],
+    ['/hotel/housekeeping', () => <HousekeepingPage />],
+    ['/hotel/setup', () => <HotelSetupPage />],
+    ['/hotel/reports', () => <HotelReportsPage />],
+    ['/travel', () => <TravelDashboardPage />],
+    ['/travel/bookings', () => <BookingsPage />],
+    ['/tours/departures', () => <DeparturesPage />],
+    ['/tours/packages', () => <PackagesPage />],
+    ['/logistics', () => <LogisticsDashboardPage />],
+    ['/logistics/consignments', () => <ConsignmentsPage />],
+    ['/logistics/trips', () => <TripsPage />],
+    ['/logistics/fleet', () => <FleetPage />],
+    ['/logistics/billing', () => <CodBillingPage />],
+    ['/ngo', () => <NgoDashboardPage />],
+    ['/ngo/grants', () => <GrantsPage />],
+    ['/ngo/donations', () => <DonationsPage />],
+    ['/ngo/beneficiaries', () => <BeneficiariesPage />],
+    ['/ngo/funds', () => <FundsPage />],
+    ['/ngo/reports', () => <NgoReportsPage />],
+    ['/projects', () => <ProjectsDashboardPage />],
+    ['/projects/list', () => <ProjectsPage />],
+    ['/projects/clients', () => <ClientsPage />],
+    ['/projects/approvals', () => <TimeApprovalsPage />],
+    ['/projects/utilization', () => <UtilizationPage />],
+    ['/timesheet', () => <MyTimesheetPage />],
+    ['/m/:module', () => <ModulePlaceholder />],
   ]
 
   return (
@@ -166,7 +171,7 @@ export default function App() {
             <Route path="/platform/tenants" element={<TenantsPage />} />
           </>
         ) : (
-          routes.map(([path, element, rule]) => <Route key={path} path={path} element={<Guard path={rule ?? path}>{element}</Guard>} />)
+          routes.map(([path, render, rule]) => <Route key={path} path={path} element={<Guard path={rule ?? path}>{render()}</Guard>} />)
         )}
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

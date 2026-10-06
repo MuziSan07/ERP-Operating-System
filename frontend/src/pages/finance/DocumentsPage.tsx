@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  App, Button, Card, Col, DatePicker, Descriptions, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Row, Select, Space, Switch, Table,
-  Tag, Typography,
-} from 'antd'
+import { Alert, App, Button, Card, Col, DatePicker, Descriptions, Drawer, Form, Input, InputNumber, Modal, Popconfirm, Row, Select, Space, Switch, Table, Tag, Typography } from 'antd'
 import { CheckOutlined, DeleteOutlined, DollarOutlined, EditOutlined, PlusOutlined, PrinterOutlined, StopOutlined } from '@ant-design/icons'
 import dayjs, { type Dayjs } from 'dayjs'
 import { api, errorMessage } from '../../api/client'
@@ -12,7 +9,7 @@ import { DOC_COLORS, amount, type DocumentKind, type DocumentListItem, type Docu
 import { fmtDate } from '../../api/hr'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
-import { AccountSelect, ContactSelect, CurrencyTag, TaxRateSelect, useFinanceSettings, useTaxRates } from '../../components/FinancePickers'
+import { AccountSelect, ContactSelect, CurrencyTag, TaxRateSelect, WhtRateSelect, useContacts, useFinanceSettings, useTaxRates, useWhtRates } from '../../components/FinancePickers'
 
 const perm = (kind: DocumentKind, action: string) => `finance.${kind === 'Invoice' ? 'invoices' : 'bills'}.${action}`
 
@@ -269,6 +266,13 @@ export function PaymentModal({ kind, contactId: initialContact, documentId, onCl
       return [...o.data.items, ...p.data.items].sort((a, b) => a.dueDate.localeCompare(b.dueDate))
     },
   })
+  // A payment settles documents of its own entity only: default to the document's entity and offer only that entity's documents.
+  const entityId = Form.useWatch('entityId', form) as string | undefined
+  useEffect(() => {
+    const doc = open?.find(d => d.id === documentId)
+    if (doc) form.setFieldValue('entityId', doc.entityId)
+  }, [open, documentId, form])
+  useEffect(() => { setAlloc(a => Object.fromEntries(Object.entries(a).filter(([id]) => open?.find(d => d.id === id)?.entityId === entityId))) }, [entityId, open])
   useEffect(() => {
     if (!open) return
     setAlloc(documentId ? Object.fromEntries(open.filter(d => d.id === documentId).map(d => [d.id, d.balance])) : {})
@@ -279,6 +283,18 @@ export function PaymentModal({ kind, contactId: initialContact, documentId, onCl
   const currency = Form.useWatch('currency', form) as string | undefined
   const total = Object.values(alloc).reduce((s, v) => s + (v || 0), 0)
 
+  // Withholding (payments to suppliers): suggested from the vendor; charged on the part of each bill excluding sales tax,
+  // doubled for suppliers not on the Active Taxpayer List. Mirrors the server's calculation for the preview.
+  const { data: vendors = [] } = useContacts({ vendors: true })
+  const { data: whtRates = [] } = useWhtRates()
+  const vendor = kind === 'Payment' ? vendors.find(c => c.id === contactId) : undefined
+  const whtRateId = Form.useWatch('withholdingTaxRateId', form) as string | undefined
+  useEffect(() => { if (kind === 'Payment') form.setFieldValue('withholdingTaxRateId', vendor?.defaultWhtRateId) }, [kind, vendor?.id, vendor?.defaultWhtRateId, form])
+  const whtRate = whtRates.find(r => r.id === whtRateId)
+  const appliedRate = whtRate ? whtRate.rate * (vendor?.notOnActiveTaxpayerList ? 2 : 1) : 0
+  const whtBase = (open ?? []).reduce((s, d) => s + (alloc[d.id] ? Math.round((d.total ? alloc[d.id] * d.subtotal / d.total : alloc[d.id]) * 100) / 100 : 0), 0)
+  const whtTax = Math.round(whtBase * appliedRate * 100) / 100
+
   const save = async () => {
     const v = await form.validateFields()
     const allocations = Object.entries(alloc).filter(([, a]) => a > 0).map(([documentId, amount]) => ({ documentId, amount }))
@@ -288,6 +304,7 @@ export function PaymentModal({ kind, contactId: initialContact, documentId, onCl
       await api.post('/finance/payments', {
         kind, entityId: v.entityId, contactId, date: (v.date as Dayjs).format('YYYY-MM-DD'), bankAccountId: v.bankAccountId,
         currency: v.currency, exchangeRate: v.exchangeRate || null, amount: Math.round(total * 100) / 100, reference: v.reference, notes: v.notes, allocations,
+        withholdingTaxRateId: kind === 'Payment' ? v.withholdingTaxRateId : undefined,
       })
       message.success(kind === 'Receipt' ? 'Receipt recorded' : 'Payment recorded')
       await qc.invalidateQueries({ queryKey: ['fin-payments'] })
@@ -297,7 +314,7 @@ export function PaymentModal({ kind, contactId: initialContact, documentId, onCl
   }
 
   return (
-    <Modal open width={760} title={kind === 'Receipt' ? 'Receive payment' : 'Pay vendor'} onCancel={onClose} onOk={save} okText={`Record ${amount(total)}`} confirmLoading={busy} destroyOnHidden>
+    <Modal open width={760} title={kind === 'Receipt' ? 'Receive payment' : 'Pay vendor'} onCancel={onClose} onOk={save} okText={whtTax ? `Pay ${amount(total - whtTax)} (withhold ${amount(whtTax)})` : `Record ${amount(total)}`} confirmLoading={busy} destroyOnHidden>
       <Form form={form} layout="vertical" preserve={false}
         initialValues={{ contactId: initialContact, date: dayjs(), entityId: me?.entities.find(e => e.permissions.includes('finance.payments.create'))?.id }}>
         <Row gutter={12}>
@@ -310,9 +327,16 @@ export function PaymentModal({ kind, contactId: initialContact, documentId, onCl
           )}
           <Col xs={12} md={8}><Form.Item name="entityId" label="Entity" rules={[{ required: true }]}><EntityPicker permission="finance.payments.create" /></Form.Item></Col>
           <Col xs={24} md={12}><Form.Item name="reference" label="Cheque / transfer reference"><Input /></Form.Item></Col>
+          {kind === 'Payment' && (!currency || currency === settings?.baseCurrency) && <>
+            <Col xs={24} md={12}><Form.Item name="withholdingTaxRateId" label="Income tax to withhold"
+              extra={vendor?.notOnActiveTaxpayerList ? 'Not on the Active Taxpayer List: the rate is doubled.' : undefined}><WhtRateSelect /></Form.Item></Col>
+            {whtTax > 0 && <Col span={24}><Alert type="info" showIcon style={{ marginBottom: 12 }}
+              title={`Withhold ${amount(whtTax)} (${+(appliedRate * 100).toFixed(2)}% of ${amount(whtBase)} excluding sales tax). The bank pays ${amount(total - whtTax)}; the bills are settled for ${amount(total)}.`} /></Col>}
+          </>}
         </Row>
       </Form>
-      <Table size="small" pagination={false} rowKey="id" dataSource={open ?? []} locale={{ emptyText: contactId ? 'No open documents' : 'Choose a contact' }}
+      <Table size="small" pagination={false} rowKey="id" dataSource={(open ?? []).filter(d => !entityId || d.entityId === entityId)}
+        locale={{ emptyText: contactId ? (open?.length ? 'No open documents for this entity — change the entity above' : 'No open documents') : 'Choose a contact' }}
         columns={[
           { title: 'Document', dataIndex: 'number' },
           { title: 'Due', dataIndex: 'dueDate', render: fmtDate },
