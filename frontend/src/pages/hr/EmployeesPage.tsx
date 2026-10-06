@@ -147,7 +147,7 @@ export function EmployeeDrawer({ employee, onClose, onSaved }: { employee?: Empl
             <Divider titlePlacement="start" plain>Login</Divider>
             <Row gutter={12}>
               <Col {...col()}><Form.Item name="email" label="Email (login)" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item></Col>
-              <Col {...col()}><Form.Item name="password" label="Initial password" rules={[{ required: true, min: 8 }]} extra="8+ characters with letters and digits."><Input.Password autoComplete="new-password" /></Form.Item></Col>
+              <Col {...col()}><Form.Item name="password" label="Initial password" rules={[{ required: true, min: 12 }]} extra="12+ characters with letters and digits."><Input.Password autoComplete="new-password" /></Form.Item></Col>
               <Col {...col()}><Form.Item name="userType" label="User type"><Select options={userTypes.map(t => ({ value: t, label: t }))} /></Form.Item></Col>
               {can(P.usersAssign) && (
                 <Col {...col()}>

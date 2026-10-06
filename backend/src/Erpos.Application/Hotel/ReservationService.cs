@@ -257,6 +257,11 @@ public class ReservationService(IAppDbContext db, IAccessService access, ICurren
         {
             // Minibar / restaurant stock leaves the outlet's warehouse at average cost.
             var warehouse = req.WarehouseId ?? throw new ValidationException("Choose the outlet warehouse the item comes from.");
+            // The stock issue below runs as a system action, so check here that the warehouse is the hotel's own, or that the
+            // clerk may issue stock where it is.
+            var warehouseEntity = await db.Warehouses.Where(w => w.Id == warehouse).Select(w => (Guid?)w.EntityId).FirstOrDefaultAsync(ct)
+                                  ?? throw new NotFoundException("Warehouse");
+            if (warehouseEntity != r.EntityId) await access.EnsureAsync(Permissions.StockIssue, warehouseEntity, ct);
             var tx = await inventory.CreateTransactionAsync(new CreateStockTransactionRequest(StockTransactionType.Issue, warehouse, null, date, null, r.EntityId,
                 r.Number, $"{req.Type} — room folio {r.Number}", [new StockLineInput(itemId, req.Quantity, null, null, null, null, req.Description)]), ct, system: true);
             charge.ItemId = itemId;

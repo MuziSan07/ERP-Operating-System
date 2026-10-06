@@ -30,8 +30,8 @@ public static partial class Guard
 
     public static void Password(string? value)
     {
-        if (value == null || value.Length < 8 || !value.Any(char.IsDigit) || !value.Any(char.IsLetter))
-            throw new ValidationException("Password must be at least 8 characters and contain letters and digits.");
+        if (value == null || value.Length < 12 || !value.Any(char.IsDigit) || !value.Any(char.IsLetter))
+            throw new ValidationException("Password must be at least 12 characters and contain letters and digits.");
     }
 
     [GeneratedRegex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$")]

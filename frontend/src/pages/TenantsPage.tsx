@@ -91,8 +91,8 @@ function TenantModal({ tenant, onClose }: { tenant: Tenant | null; onClose: () =
               <Col xs={24} sm={12}><Form.Item name="superAdminName" label="Full name" rules={[{ required: true }]}><Input /></Form.Item></Col>
               <Col xs={24} sm={12}><Form.Item name="superAdminEmail" label="Email" rules={[{ required: true, type: 'email' }]}><Input /></Form.Item></Col>
               <Col span={24}>
-                <Form.Item name="superAdminPassword" label="Initial password" rules={[{ required: true, min: 8 }]}
-                  extra="At least 8 characters with letters and digits.">
+                <Form.Item name="superAdminPassword" label="Initial password" rules={[{ required: true, min: 12 }]}
+                  extra="At least 12 characters with letters and digits.">
                   <Input.Password autoComplete="new-password" />
                 </Form.Item>
               </Col>
