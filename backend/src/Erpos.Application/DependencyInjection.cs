@@ -50,6 +50,8 @@ public static class DependencyInjection
         services.AddScoped<Projects.ProjectTaskService>();
         services.AddScoped<Projects.TimesheetService>();
         services.AddScoped<Projects.ProjectReportService>();
+        services.AddScoped<Finance.WithholdingService>();
+        services.AddScoped<Finance.BankReconciliationService>();
         // Modules that release their records when Finance voids an invoice or bill.
         services.AddScoped<Finance.IDocumentVoidHandler, Finance.ProjectInvoiceVoidHandler>();
         services.AddScoped<Finance.IDocumentVoidHandler, Finance.ShipmentInvoiceVoidHandler>();

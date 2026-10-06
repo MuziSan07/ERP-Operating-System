@@ -105,6 +105,10 @@ public class Contact : BaseEntity, ITenantOwned
     public string? Currency { get; set; }
     public int PaymentTermsDays { get; set; } = 30;
     public bool IsActive { get; set; } = true;
+    /// <summary>Withholding rate suggested when paying this vendor.</summary>
+    public Guid? DefaultWhtRateId { get; set; }
+    /// <summary>Not on FBR's Active Taxpayer List: withholding is charged at twice the rate.</summary>
+    public bool NotOnActiveTaxpayerList { get; set; }
 }
 
 /// <summary>Per-organization document numbering (JV-2027-00001, INV-2027-00001…).</summary>
@@ -158,6 +162,8 @@ public class JournalLine
     public Guid? ContactId { get; set; }
     public Guid? TaxRateId { get; set; }
     public int SortOrder { get; set; }
+    /// <summary>Bank reconciliation this bank line was matched in (null: not yet seen on a statement).</summary>
+    public Guid? ReconciliationId { get; set; }
 }
 
 /// <summary>Sales invoice or purchase bill.</summary>
@@ -233,6 +239,12 @@ public class Payment : BaseEntity, IEntityScoped
     public string? Notes { get; set; }
     public bool IsVoid { get; set; }
     public Guid? JournalEntryId { get; set; }
+    /// <summary>Income tax withheld from the supplier: Amount settles the bills, Amount − WithholdingTax leaves the bank.</summary>
+    public Guid? WithholdingTaxRateId { get; set; }
+    public decimal WithholdingTaxRateApplied { get; set; }
+    public decimal WithholdingTaxBase { get; set; }
+    public decimal WithholdingTax { get; set; }
+    public Guid? WhtDepositId { get; set; }
     public ICollection<PaymentAllocation> Allocations { get; set; } = new List<PaymentAllocation>();
 }
 

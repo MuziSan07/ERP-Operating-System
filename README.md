@@ -24,7 +24,8 @@ npm --prefix frontend run dev                          # UI on :5173 (proxies /a
   30 checks; the stock value must equal the ledger), `hotel-smoke.mjs` (hotel, 24 checks),
   `travel-smoke.mjs` (travel & tours, 21 checks), `logistics-smoke.mjs` (logistics, 24 checks; the trial balance must balance), `ngo-smoke.mjs` (NGO, 33 checks; fund balances and
   the ledger must agree), `projects-smoke.mjs` (projects & services, 37 checks), `integrity-smoke.mjs` (concurrent double-clicks and
-  half-finished operations, 9 checks), `security-smoke.mjs` (privilege escalation and sessions, 10 checks).
+  half-finished operations, 9 checks), `security-smoke.mjs` (privilege escalation and sessions, 10 checks), `compliance-smoke.mjs` (withholding tax and bank
+  reconciliation, 20 checks).
   GitHub Actions runs all of them on every push (`.github/workflows/ci.yml`).
 
 ## Concepts

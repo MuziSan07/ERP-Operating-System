@@ -24,10 +24,10 @@ public record SaveTaxRateRequest(string Code, string Name, decimal Rate, string?
 
 public record ContactDto(Guid Id, string Code, string Name, bool IsCustomer, bool IsVendor, string? Email, string? Phone,
     string? Address, string? City, string? Country, string? Ntn, string? Strn, string? Cnic, string? Currency,
-    int PaymentTermsDays, bool IsActive, decimal Receivable, decimal Payable);
+    int PaymentTermsDays, bool IsActive, decimal Receivable, decimal Payable, Guid? DefaultWhtRateId = null, bool NotOnActiveTaxpayerList = false);
 public record SaveContactRequest(string Code, string Name, bool IsCustomer, bool IsVendor, string? Email, string? Phone,
     string? Address, string? City, string? Country, string? Ntn, string? Strn, string? Cnic, string? Currency,
-    int PaymentTermsDays, bool IsActive);
+    int PaymentTermsDays, bool IsActive, Guid? DefaultWhtRateId = null, bool NotOnActiveTaxpayerList = false);
 
 // ---- Journals ----
 public record JournalLineDto(Guid AccountId, string AccountCode, string AccountName, Guid EntityId, string? EntityName,
@@ -61,10 +61,12 @@ public record SaveDocumentRequest(Guid EntityId, Guid ContactId, DateOnly Date, 
 public record AllocationDto(Guid DocumentId, string? DocumentNumber, decimal Amount, decimal BaseAmount);
 public record PaymentDto(Guid Id, PaymentKind Kind, string Number, Guid EntityId, string EntityName, Guid ContactId, string ContactName,
     DateOnly Date, Guid BankAccountId, string BankAccountName, string Currency, decimal ExchangeRate, decimal Amount,
-    string? Reference, string? Notes, bool IsVoid, Guid? JournalEntryId, IReadOnlyList<AllocationDto> Allocations);
+    string? Reference, string? Notes, bool IsVoid, Guid? JournalEntryId, IReadOnlyList<AllocationDto> Allocations,
+    decimal WithholdingTax = 0, decimal NetPaid = 0, string? WithholdingSection = null);
 public record AllocationInput(Guid DocumentId, decimal Amount);
 public record CreatePaymentRequest(PaymentKind Kind, Guid EntityId, Guid ContactId, DateOnly Date, Guid BankAccountId,
-    string? Currency, decimal? ExchangeRate, decimal Amount, string? Reference, string? Notes, List<AllocationInput> Allocations);
+    string? Currency, decimal? ExchangeRate, decimal Amount, string? Reference, string? Notes, List<AllocationInput> Allocations,
+    Guid? WithholdingTaxRateId = null);
 public record PaySalariesRequest(Guid BankAccountId, DateOnly Date);
 
 // ---- Reports ----

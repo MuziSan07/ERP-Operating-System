@@ -108,6 +108,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public DbSet<ProjectMilestone> ProjectMilestones => Set<ProjectMilestone>();
     public DbSet<ProjectTask> ProjectTasks => Set<ProjectTask>();
     public DbSet<TimeEntry> TimeEntries => Set<TimeEntry>();
+    public DbSet<WithholdingTaxRate> WithholdingTaxRates => Set<WithholdingTaxRate>();
+    public DbSet<WhtDeposit> WhtDeposits => Set<WhtDeposit>();
+    public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
+    public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
 
     /// <summary>Read by the query filters on every query. Null (anonymous or platform admin) matches no tenant rows.</summary>
     private Guid? CurrentTenantId => currentUser.TenantId;
@@ -226,6 +230,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         b.Entity<Project>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
         b.Entity<ProjectTask>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
         b.Entity<TimeEntry>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+
+        // Compliance
+        b.Entity<WithholdingTaxRate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+        b.Entity<WhtDeposit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+        b.Entity<BankReconciliation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
     }
 
     public async Task LockAsync<T>(Guid id, CancellationToken ct = default) where T : class

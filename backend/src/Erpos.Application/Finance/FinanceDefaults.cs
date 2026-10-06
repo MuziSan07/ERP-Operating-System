@@ -41,6 +41,7 @@ public static class FinanceDefaults
         new("2170", "Social security payable", AccountType.Liability, AccountSubType.PayrollLiability, "2100", System: true),
         new("2175", "Other payroll deductions payable", AccountType.Liability, AccountSubType.PayrollLiability, "2100", System: true),
         new("2180", "Output sales tax payable (FBR)", AccountType.Liability, AccountSubType.TaxPayable, "2100", System: true),
+        new("2185", "Income tax withheld from suppliers payable", AccountType.Liability, AccountSubType.TaxPayable, "2100", System: true),
         new("2190", "Provincial sales tax on services payable", AccountType.Liability, AccountSubType.TaxPayable, "2100", System: true),
         new("2125", "Goods received not invoiced", AccountType.Liability, AccountSubType.AccruedLiability, "2100", System: true),
         new("2210", "COD collections payable to shippers", AccountType.Liability, AccountSubType.OtherCurrentLiability, "2100", System: true),
@@ -89,6 +90,27 @@ public static class FinanceDefaults
         new("6900", "Income tax expense", AccountType.Expense, AccountSubType.TaxExpense, "6000"),
     ];
 
+    /// <summary>
+    /// Section 153 withholding defaults (Income Tax Ordinance 2001, rates for active taxpayers as in recent Finance Acts).
+    /// Rates change with each budget: organizations review and edit them; non-ATL suppliers are charged twice the rate.
+    /// </summary>
+    internal static readonly (string Code, string Name, string Section, decimal Rate)[] WhtDefaults =
+    [
+        ("WHT-GOODS-CO", "Supply of goods — company", "153(1)(a)", 0.05m),
+        ("WHT-GOODS-OTH", "Supply of goods — individual / AOP", "153(1)(a)", 0.055m),
+        ("WHT-SVC-CO", "Services — company", "153(1)(b)", 0.09m),
+        ("WHT-SVC-OTH", "Services — individual / AOP", "153(1)(b)", 0.11m),
+        ("WHT-CON-CO", "Execution of contracts — company", "153(1)(c)", 0.07m),
+        ("WHT-CON-OTH", "Execution of contracts — individual / AOP", "153(1)(c)", 0.075m),
+    ];
+
+    private static async Task EnsureWhtRatesAsync(IAppDbContext db, Guid tenantId, Guid payableAccountId, CancellationToken ct)
+    {
+        var have = (await db.WithholdingTaxRates.IgnoreQueryFilters().Where(r => r.TenantId == tenantId).Select(r => r.Code).ToListAsync(ct)).ToHashSet();
+        foreach (var (code, name, section, rate) in WhtDefaults.Where(d => !have.Contains(d.Code)))
+            db.WithholdingTaxRates.Add(new WithholdingTaxRate { TenantId = tenantId, Code = code, Name = name, Section = section, Rate = rate, PayableAccountId = payableAccountId });
+    }
+
     public static async Task EnsureAsync(IAppDbContext db, Guid tenantId, CancellationToken ct, string? baseCurrency = null)
     {
         if (await db.FinanceSettings.IgnoreQueryFilters().AnyAsync(s => s.TenantId == tenantId, ct)) return;
@@ -130,6 +152,7 @@ public static class FinanceDefaults
             GrniAccountId = byCode["2125"].Id, PriceVarianceAccountId = byCode["5110"].Id, InventoryAdjustmentAccountId = byCode["5120"].Id,
             CustomerAdvanceAccountId = byCode["2200"].Id
         });
+        await EnsureWhtRatesAsync(db, tenantId, byCode["2185"].Id, ct);
     }
 
     /// <summary>Adds accounts introduced by later phases to organizations created before them. Caller saves.</summary>
@@ -161,5 +184,6 @@ public static class FinanceDefaults
         settings.InventoryAdjustmentAccountId ??= Ensure("5120").Id;
         // Accounts used by industry modules (looked up by code).
         foreach (var code in new[] { "4120", "5130", "5140", "6450", "2210", "2220", "2230", "3300", "4300", "4310", "6950", "6960" }) Ensure(code);
+        await EnsureWhtRatesAsync(db, tenantId, Ensure("2185").Id, ct);
     }
 }

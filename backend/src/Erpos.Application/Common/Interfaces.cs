@@ -124,6 +124,10 @@ public interface IAppDbContext
     DbSet<ProjectMilestone> ProjectMilestones { get; }
     DbSet<ProjectTask> ProjectTasks { get; }
     DbSet<TimeEntry> TimeEntries { get; }
+    DbSet<WithholdingTaxRate> WithholdingTaxRates { get; }
+    DbSet<WhtDeposit> WhtDeposits { get; }
+    DbSet<BankReconciliation> BankReconciliations { get; }
+    DbSet<BankStatementLine> BankStatementLines { get; }
     DbSet<MaintenanceRecord> MaintenanceRecords { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
