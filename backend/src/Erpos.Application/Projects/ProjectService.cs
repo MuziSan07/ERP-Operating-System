@@ -1,4 +1,4 @@
-﻿using Erpos.Application.Authorization;
+using Erpos.Application.Authorization;
 using Erpos.Application.Common;
 using Erpos.Application.Dtos;
 using Erpos.Application.Finance;
@@ -12,10 +12,10 @@ internal static class ProjectsCommon
 {
     internal static DateOnly Today => DateOnly.FromDateTime(DateTime.UtcNow.AddHours(5));
 
-    /// <summary>Standard month for cost rates: 22 working days Ã— 8 hours.</summary>
+    /// <summary>Standard month for cost rates: 22 working days × 8 hours.</summary>
     internal const decimal HoursPerMonth = 176;
 
-    /// <summary>Hourly cost from the current salary (earnings Ã· 176). Employees without a salary cost 0 until set on the member.</summary>
+    /// <summary>Hourly cost from the current salary (earnings ÷ 176). Employees without a salary cost 0 until set on the member.</summary>
     internal static async Task<Dictionary<Guid, decimal>> CostRatesAsync(IAppDbContext db, IEnumerable<Guid> employeeIds, CancellationToken ct)
     {
         var ids = employeeIds.Distinct().ToList();
@@ -331,8 +331,8 @@ public class ProjectService(IAppDbContext db, IAccessService access, ICurrentUse
         var m = p.Milestones.FirstOrDefault(x => x.Id == milestoneId) ?? throw new NotFoundException("Milestone");
         if (m.CompletedOn == null) throw new ValidationException("Mark the milestone complete before invoicing it.");
         if (m.InvoiceId != null) throw new ValidationException("This milestone is already invoiced.");
-        var line = new DocumentLineInput($"{p.Code} {p.Name} â€” milestone: {m.Name}", await RevenueAccountAsync(ct), 1, m.Amount, p.TaxRateId);
-        var invoice = await IssueAsync(p, req.InvoiceDate ?? ProjectsCommon.Today, $"{p.Name} â€” {m.Name}", [line], ct);
+        var line = new DocumentLineInput($"{p.Code} {p.Name} — milestone: {m.Name}", await RevenueAccountAsync(ct), 1, m.Amount, p.TaxRateId);
+        var invoice = await IssueAsync(p, req.InvoiceDate ?? ProjectsCommon.Today, $"{p.Name} — {m.Name}", [line], ct);
         m.InvoiceId = invoice.Id;
         await db.SaveChangesAsync(ct);
         return new ProjectInvoiceResult(invoice.Id, invoice.Number, 0, invoice.Total, 0);
@@ -351,8 +351,8 @@ public class ProjectService(IAppDbContext db, IAccessService access, ICurrentUse
         var from = entries.Min(t => t.Date);
         var account = await RevenueAccountAsync(ct);
         var lines = entries.GroupBy(t => new { t.EmployeeId, t.Employee!.User!.FullName, t.BillRate }).OrderBy(g => g.Key.FullName)
-            .Select(g => new DocumentLineInput($"{p.Code} â€” {g.Key.FullName}, {from:dd MMM}â€“{upTo:dd MMM yyyy}", account, g.Sum(t => t.Hours), g.Key.BillRate, p.TaxRateId)).ToList();
-        var invoice = await IssueAsync(p, req.InvoiceDate ?? ProjectsCommon.Today, $"{p.Name} â€” services {from:dd MMM} to {upTo:dd MMM yyyy}", lines, ct);
+            .Select(g => new DocumentLineInput($"{p.Code} — {g.Key.FullName}, {from:dd MMM}–{upTo:dd MMM yyyy}", account, g.Sum(t => t.Hours), g.Key.BillRate, p.TaxRateId)).ToList();
+        var invoice = await IssueAsync(p, req.InvoiceDate ?? ProjectsCommon.Today, $"{p.Name} — services {from:dd MMM} to {upTo:dd MMM yyyy}", lines, ct);
         foreach (var t in entries) { t.Status = TimeEntryStatus.Invoiced; t.InvoiceId = invoice.Id; }
         await db.SaveChangesAsync(ct);
         return new ProjectInvoiceResult(invoice.Id, invoice.Number, entries.Sum(t => t.Hours), invoice.Total, entries.Count);

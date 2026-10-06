@@ -1,4 +1,4 @@
-﻿using Erpos.Application.Authorization;
+using Erpos.Application.Authorization;
 using Erpos.Application.Common;
 using Erpos.Application.Dtos;
 using Erpos.Domain.Enums;
@@ -9,7 +9,7 @@ namespace Erpos.Application.Projects;
 public class ProjectReportService(IAppDbContext db, IAccessService access, ProjectService projects, ProjectTaskService tasks)
 {
     /// <summary>
-    /// Utilization: billable hours Ã· capacity (8 h per weekday the person was employed in the period). Counts submitted,
+    /// Utilization: billable hours ÷ capacity (8 h per weekday the person was employed in the period). Counts submitted,
     /// approved and invoiced time; drafts and rejected time are left out.
     /// </summary>
     public async Task<UtilizationDto> UtilizationAsync(DateOnly? from, DateOnly? to, CancellationToken ct)
