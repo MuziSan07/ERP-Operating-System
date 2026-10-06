@@ -23,7 +23,9 @@ npm --prefix frontend run dev                          # UI on :5173 (proxies /a
   33 checks with hand-computed tax figures), `finance-smoke.mjs` (finance, 34 checks; the statements must balance), `inventory-smoke.mjs` (inventory & procurement,
   30 checks; the stock value must equal the ledger), `hotel-smoke.mjs` (hotel, 24 checks),
   `travel-smoke.mjs` (travel & tours, 21 checks), `logistics-smoke.mjs` (logistics, 24 checks; the trial balance must balance), `ngo-smoke.mjs` (NGO, 33 checks; fund balances and
-  the ledger must agree), `projects-smoke.mjs` (projects & services, 37 checks)
+  the ledger must agree), `projects-smoke.mjs` (projects & services, 37 checks), `integrity-smoke.mjs` (concurrent double-clicks and
+  half-finished operations, 9 checks), `security-smoke.mjs` (privilege escalation and sessions, 10 checks).
+  GitHub Actions runs all of them on every push (`.github/workflows/ci.yml`).
 
 ## Concepts
 
@@ -270,5 +272,25 @@ frontend/src
 New modules plug into the existing catalog: add permissions in `PermissionCatalog.cs`, make tables `IEntityScoped`,
 and call `access.EnsureAsync("module.resource.action", entityId)` in services.
 
-> Production: set `ConnectionStrings:Default`, `Jwt:Key` (32+ chars) and `Seed:*` through environment variables or a
-> secret store. `.env` and `appsettings.Development.json` hold local development values only and are not committed.
+## Deploy
+
+```bash
+cp .env.prod.example .env.prod          # real secrets: DB passwords, JWT key (32+ chars), platform admin, public URL
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+```
+
+- **Services:** `mysql`, `migrate` (one-off: `dotnet Erpos.Api.dll --migrate` applies migrations and data upgrades,
+  then exits), `api` (starts only after `migrate` succeeds; no public port), `web` (nginx serving the app and
+  proxying `/api`), `backup` (nightly `mysqldump`, kept 14 days in `./backups`; binary logs allow point-in-time recovery).
+- **Migrations** never run on API startup outside Development (`Database:MigrateOnStartup`); an API started against a
+  database with pending migrations refuses to start instead of running half-upgraded.
+- **TLS:** terminate HTTPS in front of the `web` port (Caddy, a cloud load balancer or certbot) and forward
+  `X-Forwarded-Proto`; the API honours forwarded headers and sends HSTS outside Development.
+- **Health:** `/health/live` (process up) and `/health/ready` (database reachable) for load balancers and uptime checks.
+- **Logs:** JSON lines on stdout in production, each tagged with tenant and user; error responses carry a `traceId`
+  that matches the log entry.
+- **Backups:** copy `./backups` off the server (rclone/S3/another host) and test a restore regularly:
+  `gunzip < backups/erpos-YYYYMMDD-HHMM.sql.gz | docker compose -f docker-compose.prod.yml exec -T mysql mysql -u root -p`.
+- **Configuration** comes from environment variables (`ConnectionStrings__Default`, `Jwt__Key`, `Seed__*`,
+  `Cors__Origins__0`, `AllowedHosts`, `Security__AuthRequestsPerMinute`). `.env`, `.env.prod` and
+  `appsettings.Development.json` are local only and never committed.

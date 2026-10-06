@@ -16,3 +16,5 @@ Thumbs.db
 backend/src/Erpos.Api/appsettings.Development.json
 .claude/settings.local.json
 *.log
+.env.prod
+backups/
