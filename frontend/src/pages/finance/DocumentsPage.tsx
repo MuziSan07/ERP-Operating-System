@@ -10,6 +10,7 @@ import { fmtDate } from '../../api/hr'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, ContactSelect, CurrencyTag, TaxRateSelect, WhtRateSelect, useContacts, useFinanceSettings, useTaxRates, useWhtRates } from '../../components/FinancePickers'
+import ExportButton, { fetchAllPages } from '../../components/ExportButton'
 
 const perm = (kind: DocumentKind, action: string) => `finance.${kind === 'Invoice' ? 'invoices' : 'bills'}.${action}`
 
@@ -34,7 +35,15 @@ export default function DocumentsPage({ kind }: { kind: DocumentKind }) {
     <>
       <div className="page-header">
         <Typography.Title level={2}>{kind === 'Invoice' ? 'Sales invoices' : 'Purchase bills'}</Typography.Title>
-        {can(perm(kind, 'create')) && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>New {kind === 'Invoice' ? 'invoice' : 'bill'}</Button>}
+        <Space wrap>
+          <ExportButton<DocumentListItem> fileName={kind === 'Invoice' ? 'sales-invoices' : 'purchase-bills'} title={kind === 'Invoice' ? 'Sales invoices' : 'Purchase bills'}
+            rows={() => fetchAllPages<DocumentListItem>(`/finance/${path}`, { status, overdue, search })}
+            columns={[{ title: 'Number', value: d => d.number ?? 'Draft' }, { title: 'Date', value: d => d.date, type: 'date' }, { title: 'Due', value: d => d.dueDate, type: 'date' },
+              { title: kind === 'Invoice' ? 'Customer' : 'Vendor', value: d => d.contactName, width: 30 }, { title: 'Entity', value: d => d.entityName, width: 24 },
+              { title: 'Reference', value: d => d.reference }, { title: 'Status', value: d => d.status }, { title: 'Currency', value: d => d.currency },
+              { title: 'Total', value: d => d.total, type: 'money' }, { title: 'Balance', value: d => d.balance, type: 'money' }, { title: 'Days overdue', value: d => d.daysOverdue || null, type: 'number' }]} />
+          {can(perm(kind, 'create')) && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>New {kind === 'Invoice' ? 'invoice' : 'bill'}</Button>}
+        </Space>
       </div>
       <Card>
         <Row gutter={[12, 12]} style={{ marginBottom: 16 }} align="middle">

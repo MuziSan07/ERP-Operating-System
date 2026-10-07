@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  App, Button, Card, Checkbox, Col, DatePicker, Divider, Drawer, Form, Input, InputNumber, Row, Select, Table, Tag, Typography,
-} from 'antd'
+import { App, Button, Card, Checkbox, Col, DatePicker, Divider, Drawer, Form, Input, InputNumber, Row, Select, Space, Table, Tag, Typography } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import dayjs from 'dayjs'
 import { api, errorMessage } from '../../api/client'
@@ -14,6 +12,7 @@ import {
 } from '../../api/hr'
 import { P, useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
+import ExportButton, { fetchAllPages } from '../../components/ExportButton'
 
 const STATUS_COLOR: Record<EmployeeStatus, string> = { Active: 'green', Resigned: 'default', Terminated: 'red', Retired: 'blue' }
 
@@ -35,7 +34,14 @@ export default function EmployeesPage() {
     <>
       <div className="page-header">
         <Typography.Title level={2}>Employees</Typography.Title>
-        {can(P.employeesCreate) && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>New employee</Button>}
+        <Space wrap>
+          <ExportButton<EmployeeListItem> fileName="employees" title="Employees" rows={() => fetchAllPages<EmployeeListItem>('/hr/employees', { entityId, status, search })}
+            columns={[{ title: 'Code', value: e => e.employeeCode }, { title: 'Name', value: e => e.fullName, width: 28 }, { title: 'Email', value: e => e.email, width: 30 },
+              { title: 'Phone', value: e => e.phone }, { title: 'Entity', value: e => e.entityName, width: 24 }, { title: 'Department', value: e => e.department },
+              { title: 'Designation', value: e => e.designation }, { title: 'Manager', value: e => e.managerName }, { title: 'Type', value: e => e.employmentType },
+              { title: 'Status', value: e => e.status }, { title: 'Joined', value: e => e.joinDate, type: 'date' }]} />
+          {can(P.employeesCreate) && <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>New employee</Button>}
+        </Space>
       </div>
       <Card>
         <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>

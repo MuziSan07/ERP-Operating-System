@@ -9,6 +9,7 @@ import { fmtDate } from '../../api/hr'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, ContactSelect } from '../../components/FinancePickers'
+import ExportButton from '../../components/ExportButton'
 
 const d8 = (d?: Dayjs | null) => d?.format('YYYY-MM-DD')
 const STATUS_COLORS: Record<AssetStatus, string> = { Active: 'blue', FullyDepreciated: 'default', Disposed: 'red' }
@@ -45,6 +46,11 @@ function Register() {
       <Space wrap style={{ marginBottom: 16 }}>
         <Segmented value={status} onChange={v => setStatus(v as typeof status)} options={[{ value: 'Active', label: 'In use' }, { value: 'FullyDepreciated', label: 'Fully depreciated' }, { value: 'Disposed', label: 'Disposed' }, { value: 'All', label: 'All' }]} />
         {can('finance.assets.create') && <Button type="primary" icon={<PlusOutlined />} onClick={() => setAdding(true)}>Register asset</Button>}
+        <ExportButton<AssetListItem> fileName="fixed-asset-register" title="Fixed asset register" rows={data ?? []}
+          columns={[{ title: 'Code', value: a => a.code }, { title: 'Asset', value: a => a.name, width: 34 }, { title: 'Category', value: a => a.categoryName, width: 24 },
+            { title: 'Entity', value: a => a.entityName, width: 22 }, { title: 'Location', value: a => a.location }, { title: 'Acquired', value: a => a.acquisitionDate, type: 'date' },
+            { title: 'Cost', value: a => a.cost, type: 'money' }, { title: 'Accumulated depreciation', value: a => a.accumulatedDepreciation, type: 'money' },
+            { title: 'Book value', value: a => a.bookValue, type: 'money' }, { title: 'Depreciated to', value: a => a.depreciatedThrough }, { title: 'Status', value: a => STATUS_TEXT[a.status] }]} />
       </Space>
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col xs={8}><Statistic title="Cost" value={amount(totals.cost, 0)} /></Col>

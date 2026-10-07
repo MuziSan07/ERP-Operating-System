@@ -9,6 +9,7 @@ import { fmtDate, monthName } from '../../api/hr'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, useFinanceSettings } from '../../components/FinancePickers'
 import { JournalView } from './LedgerPages'
+import ExportButton from '../../components/ExportButton'
 
 const iso = (d: Dayjs) => d.format('YYYY-MM-DD')
 /** Start of the fiscal year containing d. */
@@ -143,7 +144,12 @@ function TrialBalanceReport({ entityId }: { entityId?: string }) {
   })
   return (
     <>
-      <DatePicker value={asOf} onChange={v => v && setAsOf(v)} allowClear={false} format="DD MMM YYYY" style={{ marginBottom: 12 }} />
+      <Space style={{ marginBottom: 12 }}>
+        <DatePicker value={asOf} onChange={v => v && setAsOf(v)} allowClear={false} format="DD MMM YYYY" />
+        <ExportButton fileName={`trial-balance-${iso(asOf)}`} title={`Trial balance as at ${fmtDate(iso(asOf))} (${data?.currency ?? ''})`} rows={data?.rows ?? []}
+          columns={[{ title: 'Code', value: r => r.code }, { title: 'Account', value: r => r.name, width: 40 }, { title: 'Type', value: r => r.type },
+            { title: 'Debit', value: r => r.debit || null, type: 'money' }, { title: 'Credit', value: r => r.credit || null, type: 'money' }]} />
+      </Space>
       <Card className="print-area">
         <Typography.Title level={4} style={{ marginTop: 0 }}>Trial balance as at {fmtDate(iso(asOf))} · {data?.currency}</Typography.Title>
         <Table size="small" loading={isLoading} pagination={false} rowKey="accountId" dataSource={data?.rows}
@@ -211,7 +217,12 @@ function AgingReport({ kind, entityId }: { kind: 'Invoice' | 'Bill'; entityId?: 
   const cols = [['Not due', 'current'], ['1–30', 'days1To30'], ['31–60', 'days31To60'], ['61–90', 'days61To90'], ['90+', 'over90'], ['Total', 'total']] as const
   return (
     <>
-      <DatePicker value={asOf} onChange={v => v && setAsOf(v)} allowClear={false} format="DD MMM YYYY" style={{ marginBottom: 12 }} />
+      <Space style={{ marginBottom: 12 }}>
+        <DatePicker value={asOf} onChange={v => v && setAsOf(v)} allowClear={false} format="DD MMM YYYY" />
+        <ExportButton fileName={`${kind === 'Invoice' ? 'receivables' : 'payables'}-aging-${iso(asOf)}`} title={`${kind === 'Invoice' ? 'Receivables' : 'Payables'} aging as at ${fmtDate(iso(asOf))}`}
+          rows={data?.rows ?? []} columns={[{ title: kind === 'Invoice' ? 'Customer' : 'Vendor', value: r => r.contactName, width: 32 },
+            ...cols.map(([title, key]) => ({ title, value: (r: (typeof data & object)['rows'][number]) => r[key] || null, type: 'money' as const }))]} />
+      </Space>
       <Card className="print-area" title={`${kind === 'Invoice' ? 'Receivables' : 'Payables'} aging as at ${fmtDate(iso(asOf))} · ${data?.currency ?? ''}`}>
         <Table size="small" loading={isLoading} pagination={false} rowKey="contactId" dataSource={data?.rows} scroll={{ x: 700 }}
           columns={[{ title: kind === 'Invoice' ? 'Customer' : 'Vendor', dataIndex: 'contactName' },
