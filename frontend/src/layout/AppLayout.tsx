@@ -2,7 +2,7 @@ import { Suspense, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Avatar, Badge, Button, Dropdown, Grid, Layout, Menu, Spin, Tag, Typography, theme, type MenuProps } from 'antd'
 import {
-  ApartmentOutlined, AuditOutlined, BankOutlined, CarOutlined, DashboardOutlined, DollarOutlined, GlobalOutlined,
+  ApartmentOutlined, AuditOutlined, MailOutlined, BankOutlined, CarOutlined, DashboardOutlined, DollarOutlined, GlobalOutlined,
   HeartOutlined, HomeOutlined, InboxOutlined, LogoutOutlined, ProjectOutlined, SafetyOutlined, ShoppingCartOutlined,
   TeamOutlined, UserOutlined, WalletOutlined, CompassOutlined, SmileOutlined, IdcardOutlined, CalendarOutlined,
   ScheduleOutlined, ClusterOutlined, SettingOutlined, MenuOutlined, FileTextOutlined, FileDoneOutlined,
@@ -59,6 +59,7 @@ export default function AppLayout() {
       open('/users') && { key: '/users', icon: <UserOutlined />, label: 'Users' },
       open('/roles') && { key: '/roles', icon: <SafetyOutlined />, label: 'Roles & Permissions' },
       open('/audit') && { key: '/audit', icon: <AuditOutlined />, label: 'Audit Log' },
+      open('/admin/email') && { key: '/admin/email', icon: <MailOutlined />, label: 'Email & Reminders' },
     ].filter(Boolean) as MenuProps['items']
 
     // HR and Payroll have real screens; other modules still show the placeholder.

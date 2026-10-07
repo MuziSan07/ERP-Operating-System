@@ -15,6 +15,7 @@ import {
 } from '../../api/projects'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
+import Attachments from '../../components/Attachments'
 import { TaxRateSelect } from '../../components/FinancePickers'
 
 const usePeople = () => useQuery({ queryKey: ['prj-people'], queryFn: async () => (await api.get<ProjectPerson[]>('/projects/people')).data })
@@ -256,6 +257,7 @@ function ProjectDrawer({ id, onClose, onEdit }: { id: string; onClose: () => voi
         </> },
         { key: 'board', label: `Board (${Object.entries(p.tasksByStatus).filter(([k]) => k !== 'Done').reduce((s, [, n]) => s + n, 0)} open)`, children: <TaskBoard project={p} /> },
         { key: 'time', label: 'Time', children: <ProjectTime projectId={p.id} /> },
+        { key: 'files', label: 'Files', children: <Attachments recordType="project" recordId={p.id} canEdit={can('projects.projects.edit', p.entityId)} /> },
       ]} />}
     </Drawer>
   )

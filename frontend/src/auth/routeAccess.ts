@@ -6,6 +6,7 @@ export const ROUTE_ACCESS: Record<string, string[]> = {
   '/users': ['core.users.view'],
   '/roles': ['core.roles.view', 'core.roles.manage'],
   '/audit': ['core.audit.view'],
+  '/admin/email': ['core.audit.view'],
   '/hr/employees': ['hr.employees.view'],
   '/hr/attendance': ['hr.attendance.view'],
   '/hr/structure': ['hr.departments.view', 'hr.departments.create'],

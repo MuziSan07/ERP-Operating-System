@@ -11,6 +11,7 @@ import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, ContactSelect, CurrencyTag, TaxRateSelect, WhtRateSelect, useContacts, useFinanceSettings, useTaxRates, useWhtRates } from '../../components/FinancePickers'
 import ExportButton, { fetchAllPages } from '../../components/ExportButton'
+import Attachments from '../../components/Attachments'
 
 const perm = (kind: DocumentKind, action: string) => `finance.${kind === 'Invoice' ? 'invoices' : 'bills'}.${action}`
 
@@ -248,6 +249,7 @@ function DocumentView({ kind, id, onClose, onEdit }: { kind: DocumentKind; id: s
         </Row>
         {d.notes && <Typography.Paragraph style={{ marginTop: 12 }}>{d.notes}</Typography.Paragraph>}
       </div>
+      <div style={{ marginTop: 24 }}><Attachments recordType={isInvoice ? 'invoice' : 'bill'} recordId={d.id} canEdit={can(perm(kind, 'edit'), d.entityId)} /></div>
       {paying && <PaymentModal kind={isInvoice ? 'Receipt' : 'Payment'} contactId={d.contactId} documentId={d.id} onClose={() => setPaying(false)}
         onDone={() => { void qc.invalidateQueries({ queryKey: ['fin-doc', id] }); void qc.invalidateQueries({ queryKey: ['fin-docs'] }) }} />}
     </Drawer>
