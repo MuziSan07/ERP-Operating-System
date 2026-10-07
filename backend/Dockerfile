@@ -14,7 +14,10 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_HTTP_PORTS=8080 \
-    ASPNETCORE_ENVIRONMENT=Production
+    ASPNETCORE_ENVIRONMENT=Production \
+    Storage__Path=/app/data/files
+# Attachments live in /app/data (mount a volume there); the non-root user must own it.
+RUN mkdir -p /app/data/files && chown -R $APP_UID /app/data
 EXPOSE 8080
 # Built-in non-root user of the .NET images.
 USER $APP_UID

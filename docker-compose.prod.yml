@@ -13,6 +13,13 @@ x-api-env: &api-env
   Cors__Origins__0: "${PUBLIC_URL:?set PUBLIC_URL, e.g. https://erp.example.com}"
   AllowedHosts: "${ALLOWED_HOSTS:-*}"
   Database__MigrateOnStartup: "false"
+  App__PublicUrl: "${PUBLIC_URL:?set PUBLIC_URL}"
+  # Outgoing email (password resets, daily reminders). Leave SMTP_HOST empty to keep emails in the outbox.
+  Email__From: "${EMAIL_FROM:-ERPOS <no-reply@example.com>}"
+  Email__Smtp__Host: "${SMTP_HOST:-}"
+  Email__Smtp__Port: "${SMTP_PORT:-587}"
+  Email__Smtp__User: "${SMTP_USER:-}"
+  Email__Smtp__Password: "${SMTP_PASSWORD:-}"
 
 services:
   mysql:
@@ -48,6 +55,8 @@ services:
     image: erpos-api
     restart: unless-stopped
     environment: *api-env
+    volumes:
+      - files-data:/app/data
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -92,3 +101,4 @@ services:
 
 volumes:
   mysql-data:
+  files-data:
