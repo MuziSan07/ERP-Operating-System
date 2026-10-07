@@ -12,6 +12,7 @@ import { fmtDate } from '../../api/hr'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, ContactSelect, useWhtRates } from '../../components/FinancePickers'
+import ExportButton from '../../components/ExportButton'
 
 const d8 = (d?: Dayjs | null) => d?.format('YYYY-MM-DD')
 const pct = (r: number) => `${+(r * 100).toFixed(2)}%`
@@ -47,6 +48,11 @@ function WhtRegister() {
     <>
       <Space wrap style={{ marginBottom: 16 }}>
         <DatePicker picker="month" value={month} onChange={d => d && setMonth(d)} allowClear={false} format="MMMM YYYY" />
+        <ExportButton fileName={`withholding-${month.format('YYYY-MM')}`} title={`Income tax withheld — ${month.format('MMMM YYYY')}`} rows={data?.deductions ?? []}
+          columns={[{ title: 'Date', value: d => d.date, type: 'date' }, { title: 'Payment', value: d => d.paymentNumber }, { title: 'Supplier', value: d => d.vendorName, width: 30 },
+            { title: 'NTN', value: d => d.vendorNtn }, { title: 'CNIC', value: d => d.vendorCnic }, { title: 'Non-ATL', value: d => (d.nonFiler ? 'Yes' : '') }, { title: 'Section', value: d => d.section },
+            { title: 'Rate %', value: d => +(d.rate * 100).toFixed(2), type: 'number' }, { title: 'Amount', value: d => d.taxBase, type: 'money' }, { title: 'Tax', value: d => d.tax, type: 'money' },
+            { title: 'CPR', value: d => d.cprNumber }]} />
         {can('finance.payments.create') && <Button type="primary" disabled={!data?.undeposited} onClick={() => setDepositing(true)}>Deposit {data?.undeposited ? amount(data.undeposited, 0) : ''} with FBR</Button>}
       </Space>
       <Row gutter={16} style={{ marginBottom: 16 }}>

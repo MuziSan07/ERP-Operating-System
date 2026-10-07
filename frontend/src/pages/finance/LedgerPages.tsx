@@ -11,6 +11,7 @@ import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, WhtRateSelect, ContactSelect, CurrencyTag, useContacts, useFinanceSettings } from '../../components/FinancePickers'
 import { PaymentModal } from './DocumentsPage'
+import ExportButton, { fetchAllPages } from '../../components/ExportButton'
 
 // ======================= Payments =======================
 
@@ -36,6 +37,11 @@ export function PaymentsPage() {
         <Typography.Title level={2}>Payments</Typography.Title>
         {can('finance.payments.create') && (
           <Space wrap>
+            <ExportButton<Payment> fileName="payments" title="Payments and receipts" rows={() => fetchAllPages<Payment>('/finance/payments', { kind: kind === 'All' ? undefined : kind })}
+              columns={[{ title: 'Number', value: p => p.number }, { title: 'Date', value: p => p.date, type: 'date' }, { title: 'Type', value: p => p.kind },
+                { title: 'Contact', value: p => p.contactName, width: 30 }, { title: 'Bank / cash', value: p => p.bankAccountName, width: 26 }, { title: 'Currency', value: p => p.currency },
+                { title: 'Amount', value: p => p.amount, type: 'money' }, { title: 'Tax withheld', value: p => p.withholdingTax || null, type: 'money' },
+                { title: 'Reference', value: p => p.reference }, { title: 'Void', value: p => (p.isVoid ? 'Yes' : '') }]} />
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating('Receipt')}>Receive from customer</Button>
             <Button icon={<PlusOutlined />} onClick={() => setCreating('Payment')}>Pay vendor</Button>
           </Space>
@@ -282,7 +288,14 @@ export function ContactsPage() {
     <>
       <div className="page-header">
         <Typography.Title level={2}>Customers & vendors</Typography.Title>
-        {can('finance.contacts.create') && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>New contact</Button>}
+        <Space wrap>
+          <ExportButton<Contact> fileName="customers-vendors" title="Customers and vendors" rows={data}
+            columns={[{ title: 'Code', value: c => c.code }, { title: 'Name', value: c => c.name, width: 32 }, { title: 'Customer', value: c => (c.isCustomer ? 'Yes' : '') },
+              { title: 'Vendor', value: c => (c.isVendor ? 'Yes' : '') }, { title: 'NTN', value: c => c.ntn }, { title: 'STRN', value: c => c.strn }, { title: 'Phone', value: c => c.phone },
+              { title: 'Email', value: c => c.email, width: 28 }, { title: 'City', value: c => c.city }, { title: 'Receivable', value: c => c.receivable, type: 'money' },
+              { title: 'Payable', value: c => c.payable, type: 'money' }]} />
+          {can('finance.contacts.create') && <Button type="primary" icon={<PlusOutlined />} onClick={() => setEditing('new')}>New contact</Button>}
+        </Space>
       </div>
       <Card>
         <Segmented style={{ marginBottom: 16 }} value={filter} onChange={v => setFilter(v as typeof filter)}

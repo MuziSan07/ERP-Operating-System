@@ -18,6 +18,7 @@ import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, TaxRateSelect } from '../../components/FinancePickers'
 import { JournalView } from '../finance/LedgerPages'
+import ExportButton from '../../components/ExportButton'
 
 /* eslint-disable react-refresh/only-export-components */
 export const useItems = () => useQuery({ queryKey: ['inv-items'], queryFn: async () => (await api.get<Item[]>('/inventory/items')).data })
@@ -213,6 +214,11 @@ function OnHand() {
       <Space wrap style={{ marginBottom: 16 }}>
         <div style={{ width: 280 }}><WarehouseSelect value={warehouseId} onChange={setWarehouseId} /></div>
         {warehouseId && <Button onClick={() => setWarehouseId(undefined)}>All warehouses</Button>}
+        <ExportButton<StockRow> fileName="stock-on-hand" title="Stock on hand" rows={data}
+          columns={[{ title: 'Item code', value: r => r.itemCode }, { title: 'Item', value: r => r.itemName, width: 32 }, { title: 'Category', value: r => r.category },
+            { title: 'Warehouse', value: r => r.warehouseName, width: 24 }, { title: 'Quantity', value: r => r.quantity, type: 'number' }, { title: 'Unit', value: r => r.unit },
+            { title: 'Average cost', value: r => r.averageCost, type: 'number' }, { title: 'Value', value: r => r.value, type: 'money' },
+            { title: 'Reorder level', value: r => r.reorderLevel || null, type: 'number' }, { title: 'Below reorder', value: r => (r.belowReorder ? 'Yes' : '') }]} />
         <Space><Switch checked={low} onChange={setLow} />At or below reorder level</Space>
       </Space>
       <Table<StockRow> rowKey={r => `${r.itemId}-${r.warehouseId}`} loading={isLoading} dataSource={data} scroll={{ x: 800 }}
