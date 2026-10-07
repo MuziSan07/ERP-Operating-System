@@ -78,7 +78,7 @@ jobs:
       - name: End-to-end suites
         working-directory: backend
         run: |
-          for t in smoke integrity-smoke security-smoke hr-smoke finance-smoke inventory-smoke hotel-smoke travel-smoke logistics-smoke ngo-smoke projects-smoke; do
+          for t in smoke integrity-smoke security-smoke compliance-smoke assets-smoke extras-smoke hr-smoke finance-smoke inventory-smoke hotel-smoke travel-smoke logistics-smoke ngo-smoke projects-smoke; do
             echo "::group::$t"
             node tests/$t.mjs
             echo "::endgroup::"
