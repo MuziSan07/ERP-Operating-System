@@ -87,6 +87,68 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                     b.ToTable("fin_accounts", (string)null);
                 });
 
+            modelBuilder.Entity("Erpos.Domain.Entities.AssetCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("AccumulatedAccountId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("AssetAccountId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("ExpenseAccountId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<decimal>("ReducingRate")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("UsefulLifeMonths")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Code");
+
+                    b.ToTable("fin_asset_categories", (string)null);
+                });
+
             modelBuilder.Entity("Erpos.Domain.Entities.Assistance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -904,6 +966,79 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                     b.ToTable("tour_departure_guides", (string)null);
                 });
 
+            modelBuilder.Entity("Erpos.Domain.Entities.DepreciationLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Months")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("RunId")
+                        .HasColumnType("char(36)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssetId");
+
+                    b.HasIndex("RunId");
+
+                    b.ToTable("fin_depreciation_lines", (string)null);
+                });
+
+            modelBuilder.Entity("Erpos.Domain.Entities.DepreciationRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<Guid?>("JournalEntryId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Month")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("Total")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("Year")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "EntityId", "Year", "Month");
+
+                    b.ToTable("fin_depreciation_runs", (string)null);
+                });
+
             modelBuilder.Entity("Erpos.Domain.Entities.Designation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1662,6 +1797,123 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("fin_settings", (string)null);
+                });
+
+            modelBuilder.Entity("Erpos.Domain.Entities.FixedAsset", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal>("AccumulatedDepreciation")
+                        .IsConcurrencyToken()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("AcquisitionBillId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime>("AcquisitionDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("AcquisitionJournalId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid>("CategoryId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<decimal>("Cost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<Guid?>("CustodianEmployeeId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("DepreciatedThrough")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DepreciationStart")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("DisposalDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("DisposalJournalId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<decimal?>("DisposalProceeds")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<decimal>("ReducingRate")
+                        .HasPrecision(9, 6)
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal>("SalvageValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("SerialNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Status")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("char(36)");
+
+                    b.Property<int>("UsefulLifeMonths")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("EntityId", "Status");
+
+                    b.HasIndex("TenantId", "Code");
+
+                    b.ToTable("fin_fixed_assets", (string)null);
                 });
 
             modelBuilder.Entity("Erpos.Domain.Entities.FolioCharge", b =>
@@ -6207,6 +6459,15 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                     b.Navigation("Guide");
                 });
 
+            modelBuilder.Entity("Erpos.Domain.Entities.DepreciationLine", b =>
+                {
+                    b.HasOne("Erpos.Domain.Entities.DepreciationRun", null)
+                        .WithMany("Lines")
+                        .HasForeignKey("RunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Erpos.Domain.Entities.Donation", b =>
                 {
                     b.HasOne("Erpos.Domain.Entities.Donor", "Donor")
@@ -6357,6 +6618,25 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                     b.Navigation("Account");
 
                     b.Navigation("TaxRate");
+                });
+
+            modelBuilder.Entity("Erpos.Domain.Entities.FixedAsset", b =>
+                {
+                    b.HasOne("Erpos.Domain.Entities.AssetCategory", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Erpos.Domain.Entities.BusinessEntity", "Entity")
+                        .WithMany()
+                        .HasForeignKey("EntityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Category");
+
+                    b.Navigation("Entity");
                 });
 
             modelBuilder.Entity("Erpos.Domain.Entities.FolioCharge", b =>
@@ -7251,6 +7531,11 @@ namespace Erpos.Infrastructure.Persistence.Migrations
                     b.Navigation("Children");
 
                     b.Navigation("Modules");
+                });
+
+            modelBuilder.Entity("Erpos.Domain.Entities.DepreciationRun", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("Erpos.Domain.Entities.EmployeeSalary", b =>

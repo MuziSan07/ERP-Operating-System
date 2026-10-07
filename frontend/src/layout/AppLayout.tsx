@@ -81,6 +81,7 @@ export default function AppLayout() {
       open('/finance/contacts') && { key: '/finance/contacts', icon: <ContactsOutlined />, label: 'Customers & vendors' },
       open('/finance/journals') && { key: '/finance/journals', icon: <BookOutlined />, label: 'Journal entries' },
       open('/finance/reports') && { key: '/finance/reports', icon: <BarChartOutlined />, label: 'Reports' },
+      open('/finance/assets') && { key: '/finance/assets', icon: <DatabaseOutlined />, label: 'Fixed assets' },
       open('/finance/withholding') && { key: '/finance/withholding', icon: <SafetyOutlined />, label: 'Withholding tax' },
       open('/finance/reconciliation') && { key: '/finance/reconciliation', icon: <BankOutlined />, label: 'Bank reconciliation' },
       open('/finance/settings') && { key: '/finance/settings', icon: <SettingOutlined />, label: 'Accounting setup' },

@@ -128,6 +128,9 @@ public interface IAppDbContext
     DbSet<WhtDeposit> WhtDeposits { get; }
     DbSet<BankReconciliation> BankReconciliations { get; }
     DbSet<BankStatementLine> BankStatementLines { get; }
+    DbSet<AssetCategory> AssetCategories { get; }
+    DbSet<FixedAsset> FixedAssets { get; }
+    DbSet<DepreciationRun> DepreciationRuns { get; }
     DbSet<MaintenanceRecord> MaintenanceRecords { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);

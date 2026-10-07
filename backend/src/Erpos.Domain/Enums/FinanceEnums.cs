@@ -32,3 +32,9 @@ public enum DocumentStatus { Draft = 1, Open = 2, PartiallyPaid = 3, Paid = 4, V
 public enum PaymentKind { Receipt = 1, Payment = 2 }
 
 public enum ReconciliationStatus { Draft = 1, Completed = 2 }
+
+public enum DepreciationMethod { StraightLine = 1, ReducingBalance = 2 }
+
+public enum AssetStatus { Active = 1, FullyDepreciated = 2, Disposed = 3 }
+
+public enum AssetAcquisition { AlreadyInBooks = 1, PaidNow = 2, OnCredit = 3 }

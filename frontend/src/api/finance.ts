@@ -91,3 +91,19 @@ export const DOC_COLORS: Record<DocumentStatus, string> = { Draft: 'default', Op
 export const JOURNAL_COLORS: Record<JournalStatus, string> = { Draft: 'default', Posted: 'green', Reversed: 'red' }
 // Lakh/crore grouping as used in Pakistani accounts: 12,50,000.00 (en-IN has the same digit grouping as en-PK practice).
 export const amount = (n?: number, digits = 2) => (n ?? 0).toLocaleString('en-IN', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+
+// ---- Fixed assets ----
+export type DepreciationMethod = 'StraightLine' | 'ReducingBalance'
+export type AssetStatus = 'Active' | 'FullyDepreciated' | 'Disposed'
+export type AssetAcquisition = 'AlreadyInBooks' | 'PaidNow' | 'OnCredit'
+export interface AssetCategory { id: string; code: string; name: string; method: DepreciationMethod; usefulLifeMonths: number; reducingRate: number; assetAccountId: string; accumulatedAccountId: string; expenseAccountId: string; isActive: boolean; assets: number }
+export interface AssetListItem { id: string; code: string; name: string; categoryName: string; entityName: string; acquisitionDate: string; cost: number; accumulatedDepreciation: number; bookValue: number; status: AssetStatus; location?: string; depreciatedThrough?: string }
+export interface FixedAsset {
+  id: string; code: string; name: string; entityId: string; entityName: string; categoryId: string; categoryName: string; serialNo?: string; location?: string
+  acquisitionDate: string; depreciationStart: string; cost: number; salvageValue: number; method: DepreciationMethod; usefulLifeMonths: number; reducingRate: number
+  accumulatedDepreciation: number; bookValue: number; monthlyCharge: number; depreciatedThrough?: string; status: AssetStatus; disposalDate?: string
+  disposalProceeds?: number; notes?: string; history: { year: number; month: number; months: number; amount: number }[]
+}
+export interface DepreciationRun { id: string; year: number; month: number; total: number; assets: number; journalNumber?: string; lines: { assetId: string; assetCode: string; assetName: string; months: number; amount: number }[] }
+export interface AssetScheduleRow { category: string; openingCost: number; additions: number; disposals: number; closingCost: number; openingDepreciation: number; charge: number; depreciationOnDisposals: number; closingDepreciation: number; closingBookValue: number }
+export interface AssetSchedule { from: string; to: string; rows: AssetScheduleRow[]; total: AssetScheduleRow }
