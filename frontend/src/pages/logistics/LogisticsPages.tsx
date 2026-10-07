@@ -17,6 +17,7 @@ import {
 } from '../../api/logistics'
 import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
+import Attachments from '../../components/Attachments'
 import { AccountSelect, ContactSelect, TaxRateSelect } from '../../components/FinancePickers'
 
 const useVehicles = () => useQuery({ queryKey: ['log-vehicles'], queryFn: async () => (await api.get<Vehicle[]>('/logistics/vehicles')).data })
@@ -279,6 +280,7 @@ function ConsignmentDrawer({ id, onClose, onEdit }: { id: string; onClose: () =>
           <b>{words(e.status)}</b>{e.location && ` — ${e.location}`}
           <div><Typography.Text type="secondary">{dayjs(e.at).format('DD MMM YYYY HH:mm')}{e.byName && ` · ${e.byName}`}</Typography.Text></div>
           {e.remarks && <div>{e.remarks}</div>}</> }))} />
+        <Attachments recordType="shipment" recordId={s.id} canEdit={can('logistics.shipments.edit', s.entityId)} />
       </>}
       {deliver && s && <DeliverModal s={s} onClose={() => setDeliver(false)} />}
       {statusOpen && s && <StatusModal s={s} onClose={() => setStatusOpen(false)} />}

@@ -10,6 +10,7 @@ import { api, errorMessage } from '../../api/client'
 import type { PagedResult } from '../../api/types'
 import { amount } from '../../api/finance'
 import { fmtDate } from '../../api/hr'
+import Attachments from '../../components/Attachments'
 import {
   BUDGET_CATEGORIES, DONOR_TYPES, FUND_COLORS, GRANT_COLORS, words, type Beneficiary, type BeneficiaryListItem, type BudgetCategory, type Donation,
   type DonationListItem, type Donor, type DonorSummaryRow, type Fund, type FundExpense, type FunctionalExpenses, type Grant, type GrantListItem,
@@ -280,6 +281,7 @@ function GrantDrawer({ id, onClose, onEdit }: { id: string; onClose: () => void;
         </Row>
         <Typography.Title level={5} style={{ marginTop: 24 }}>Costs charged</Typography.Title>
         <ExpenseTable rows={g.expenses} />
+        <div style={{ marginTop: 24 }}><Attachments recordType="grant" recordId={g.id} canEdit={can('ngo.grants.edit', g.entityId)} /></div>
       </>}
       {receive && g && <ReceiveModal grant={g} trancheId={receive} onClose={() => setReceive(null)} />}
       {spend && g && <ChargeModal grant={g} onClose={() => setSpend(false)} />}
@@ -629,6 +631,7 @@ function BeneficiaryDrawer({ id, onClose, onEdit }: { id: string; onClose: () =>
         <Table size="small" rowKey="id" pagination={false} dataSource={b.assistance} locale={{ emptyText: 'No assistance yet' }}
           columns={[{ title: 'Date', dataIndex: 'date', render: fmtDate }, { title: 'Type', dataIndex: 'type', render: words }, { title: 'Description', dataIndex: 'description' },
             { title: 'Funded by', render: (_, a) => a.fundCode ?? '—' }, { title: 'Value', align: 'right', render: (_, a) => amount(a.value, 0) }]} />
+        <div style={{ marginTop: 24 }}><Attachments recordType="beneficiary" recordId={b.id} canEdit={can('ngo.beneficiaries.edit', b.entityId)} /></div>
       </>}
       {assist && b && <AssistanceModal b={b} onClose={() => setAssist(false)} />}
     </Drawer>

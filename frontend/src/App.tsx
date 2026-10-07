@@ -5,6 +5,7 @@ import { useAuth } from './auth/AuthContext'
 import { canOpen } from './auth/routeAccess'
 import AppLayout from './layout/AppLayout'
 import LoginPage from './pages/LoginPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 import DashboardPage from './pages/DashboardPage'
 
 // Every page is loaded on first visit, so a payroll clerk never downloads the hotel or NGO screens.
@@ -19,6 +20,7 @@ const UsersPage = page(() => import('./pages/UsersPage'))
 const RolesPage = page(() => import('./pages/RolesPage'))
 const TenantsPage = page(() => import('./pages/TenantsPage'))
 const AuditPage = page(() => import('./pages/AuditPage'))
+const OutboxPage = page(() => import('./pages/OutboxPage'))
 const ProfilePage = page(() => import('./pages/ProfilePage'))
 const ModulePlaceholder = page(() => import('./pages/ModulePlaceholder'))
 const MyWorkspacePage = page(hr)
@@ -98,6 +100,7 @@ export default function App() {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -110,6 +113,7 @@ export default function App() {
     ['/users', () => <UsersPage />],
     ['/roles', () => <RolesPage />],
     ['/audit', () => <AuditPage />],
+    ['/admin/email', () => <OutboxPage />],
     ['/me', () => <MyWorkspacePage />],
     ['/hr/employees', () => <EmployeesPage />],
     ['/hr/employees/:id', () => <EmployeeDetailPage />, '/hr/employees'],

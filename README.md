@@ -25,7 +25,8 @@ npm --prefix frontend run dev                          # UI on :5173 (proxies /a
   `travel-smoke.mjs` (travel & tours, 21 checks), `logistics-smoke.mjs` (logistics, 24 checks; the trial balance must balance), `ngo-smoke.mjs` (NGO, 33 checks; fund balances and
   the ledger must agree), `projects-smoke.mjs` (projects & services, 37 checks), `integrity-smoke.mjs` (concurrent double-clicks and
   half-finished operations, 9 checks), `security-smoke.mjs` (privilege escalation and sessions, 10 checks), `compliance-smoke.mjs` (withholding tax and bank
-  reconciliation, 20 checks), `assets-smoke.mjs` (fixed assets and depreciation, 17 checks).
+  reconciliation, 20 checks), `assets-smoke.mjs` (fixed assets and depreciation, 17 checks), `extras-smoke.mjs` (attachments, password reset,
+  outbox and reminders, 16 checks).
   GitHub Actions runs all of them on every push (`.github/workflows/ci.yml`).
 
 ## Concepts
@@ -264,6 +265,22 @@ and indirect cost recovery.
 
 Not yet: expense claims billed to projects, retainers and recurring billing, Gantt charts and dependencies, Git/Jira
 integration, client portal, and percentage-of-completion revenue recognition.
+
+## Platform tools
+
+- **Attachments:** scans and files on invoices, bills, payments, journals, assets, employees, consignments, grants,
+  projects and beneficiaries (PDF, images, Office, CSV, text; 10 MB each). Who can see or attach follows the record's
+  own permissions. Files are stored under `App_Data/files` locally and on the `files-data` volume in Docker.
+- **Excel export** on the main lists and reports (invoices, bills, payments, contacts, trial balance, aging, employees,
+  stock, asset register, withholding register).
+- **Email:** an outbox retried in the background. Uses SMTP when `Email:Smtp:Host` is set; in Development without
+  SMTP, emails are written as files to `App_Data/mail`. Administration → Email & Reminders shows what was sent.
+- **Forgot password:** a link on the sign-in page emails a one-time reset link that expires after one hour. The reply
+  is the same whether or not the email exists, and a reset signs the user out everywhere.
+- **Daily reminders:** after 08:00 PKT, each organization's administrators get one digest with overdue invoices, bills
+  due, withholding tax not yet deposited, depreciation not run, pending leave and timesheets, donor reports due, and
+  expiring vehicle papers and driver licences. Turn it off with `Reminders:Enabled=false`, or run it on demand from
+  the Email & Reminders screen.
 
 ## Layout
 

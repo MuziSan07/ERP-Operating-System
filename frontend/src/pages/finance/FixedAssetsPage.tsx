@@ -10,6 +10,7 @@ import { useAuth } from '../../auth/AuthContext'
 import EntityPicker from '../../components/EntityPicker'
 import { AccountSelect, ContactSelect } from '../../components/FinancePickers'
 import ExportButton from '../../components/ExportButton'
+import Attachments from '../../components/Attachments'
 
 const d8 = (d?: Dayjs | null) => d?.format('YYYY-MM-DD')
 const STATUS_COLORS: Record<AssetStatus, string> = { Active: 'blue', FullyDepreciated: 'default', Disposed: 'red' }
@@ -150,6 +151,7 @@ function AssetDrawer({ id, onClose }: { id: string; onClose: () => void }) {
         <Table size="small" rowKey={r => `${r.year}-${r.month}`} pagination={false} dataSource={a.history} locale={{ emptyText: 'None yet' }}
           columns={[{ title: 'Run', render: (_, r) => dayjs(new Date(r.year, r.month - 1, 1)).format('MMMM YYYY') }, { title: 'Months', dataIndex: 'months' },
             { title: 'Amount', align: 'right', render: (_, r) => amount(r.amount) }]} />
+        <div style={{ marginTop: 24 }}><Attachments recordType="asset" recordId={a.id} canEdit={can('finance.assets.edit', a.entityId)} /></div>
         <Modal open={disposing} title={`Sell or scrap ${a.code}`} onCancel={() => setDisposing(false)} onOk={dispose} okText="Dispose" okButtonProps={{ danger: true }} forceRender>
           <Form form={form} layout="vertical" initialValues={{ date: dayjs(), proceeds: 0 }}>
             <Row gutter={12}>

@@ -14,6 +14,7 @@ import {
 } from '../../api/hr'
 import { P, useAuth } from '../../auth/AuthContext'
 import { AttendanceCalendar } from '../../components/HrWidgets'
+import Attachments from '../../components/Attachments'
 import { EmployeeDrawer } from './EmployeesPage'
 import { ApplyLeaveModal } from './MyWorkspacePage'
 
@@ -88,6 +89,7 @@ export default function EmployeeDetailPage() {
         ...(can(P.salaryView, e.entityId) ? [{ key: 'salary', label: 'Salary', children: <SalaryTab employee={e} /> }] : []),
         { key: 'leave', label: 'Leave', children: <LeaveTab employee={e} /> },
         { key: 'attendance', label: 'Attendance', children: <AttendanceTab employeeId={e.id} /> },
+        { key: 'documents', label: 'Documents', children: <Card><Attachments recordType="employee" recordId={e.id} canEdit={can(P.employeesEdit, e.entityId)} /></Card> },
       ]} />
       {editing && <EmployeeDrawer employee={e} onClose={() => setEditing(false)} />}
     </>
