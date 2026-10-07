@@ -62,6 +62,10 @@ public static class Permissions
     public const string PaymentsApprove = "finance.payments.approve";
     public const string ReportsView = "finance.reports.view";
     public const string FinanceSettingsManage = "finance.settings.manage";
+    public const string AssetsView = "finance.assets.view";
+    public const string AssetsCreate = "finance.assets.create";
+    public const string AssetsEdit = "finance.assets.edit";
+    public const string AssetsDepreciate = "finance.assets.depreciate";
 
     // Inventory & procurement
     public const string ItemsView = "inventory.items.view";
@@ -211,6 +215,7 @@ public static class Permissions
         Add(Modules.Finance, "payments", "view", "create", "approve");
         Add(Modules.Finance, "reports", "view", "export");
         Add(Modules.Finance, "settings", "manage");
+        Add(Modules.Finance, "assets", [.. Crud, "depreciate"]);
 
         Add(Modules.Inventory, "items", Crud);
         Add(Modules.Inventory, "warehouses", Crud);

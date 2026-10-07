@@ -19,6 +19,7 @@ export const ROUTE_ACCESS: Record<string, string[]> = {
   '/finance/journals': ['finance.journals.view'],
   '/finance/reports': ['finance.reports.view'],
   '/finance/settings': ['finance.settings.manage', 'finance.accounts.view'],
+  '/finance/assets': ['finance.assets.view'],
   '/finance/withholding': ['finance.reports.view', 'finance.payments.view'],
   '/finance/reconciliation': ['finance.journals.post', 'finance.reports.view'],
   '/inventory/stock': ['inventory.stock.view'],

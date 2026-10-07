@@ -63,6 +63,7 @@ public static class FinanceDefaults
         new("4300", "Grants and donations", AccountType.Income, AccountSubType.Revenue, "4000"),
         new("4310", "Restricted income released (grants and Zakat spent)", AccountType.Income, AccountSubType.Revenue, "4000", System: true),
         new("4900", "Other income", AccountType.Income, AccountSubType.OtherIncome, "4000"),
+        new("4920", "Gain / (loss) on disposal of fixed assets", AccountType.Income, AccountSubType.OtherIncome, "4000", System: true),
         new("4910", "Exchange gain / (loss)", AccountType.Income, AccountSubType.OtherIncome, "4000", System: true),
 
         new("5000", "Cost of sales", AccountType.Expense, AccountSubType.Group, null, true),
@@ -103,6 +104,21 @@ public static class FinanceDefaults
         ("WHT-CON-CO", "Execution of contracts — company", "153(1)(c)", 0.07m),
         ("WHT-CON-OTH", "Execution of contracts — individual / AOP", "153(1)(c)", 0.075m),
     ];
+
+    /// <summary>Starter asset classes (straight line, typical useful lives); organizations adjust them to their policy.</summary>
+    internal static readonly (string Code, string Name, int LifeMonths)[] AssetCategoryDefaults =
+    [
+        ("BLDG", "Buildings", 300), ("PLANT", "Plant & machinery", 120), ("FURN", "Furniture & fixtures", 120),
+        ("VEH", "Vehicles", 60), ("IT", "Computers & IT equipment", 36), ("OFFICE", "Office equipment", 60),
+    ];
+
+    private static async Task EnsureAssetCategoriesAsync(IAppDbContext db, Guid tenantId, Guid asset, Guid accumulated, Guid expense, CancellationToken ct)
+    {
+        if (await db.AssetCategories.IgnoreQueryFilters().AnyAsync(c => c.TenantId == tenantId, ct)) return;
+        foreach (var (code, name, life) in AssetCategoryDefaults)
+            db.AssetCategories.Add(new AssetCategory { TenantId = tenantId, Code = code, Name = name, Method = DepreciationMethod.StraightLine, UsefulLifeMonths = life,
+                AssetAccountId = asset, AccumulatedAccountId = accumulated, ExpenseAccountId = expense });
+    }
 
     private static async Task EnsureWhtRatesAsync(IAppDbContext db, Guid tenantId, Guid payableAccountId, CancellationToken ct)
     {
@@ -153,6 +169,7 @@ public static class FinanceDefaults
             CustomerAdvanceAccountId = byCode["2200"].Id
         });
         await EnsureWhtRatesAsync(db, tenantId, byCode["2185"].Id, ct);
+        await EnsureAssetCategoriesAsync(db, tenantId, byCode["1510"].Id, byCode["1520"].Id, byCode["6700"].Id, ct);
     }
 
     /// <summary>Adds accounts introduced by later phases to organizations created before them. Caller saves.</summary>
@@ -185,5 +202,7 @@ public static class FinanceDefaults
         // Accounts used by industry modules (looked up by code).
         foreach (var code in new[] { "4120", "5130", "5140", "6450", "2210", "2220", "2230", "3300", "4300", "4310", "6950", "6960" }) Ensure(code);
         await EnsureWhtRatesAsync(db, tenantId, Ensure("2185").Id, ct);
+        Ensure("4920");
+        await EnsureAssetCategoriesAsync(db, tenantId, Ensure("1510").Id, Ensure("1520").Id, Ensure("6700").Id, ct);
     }
 }

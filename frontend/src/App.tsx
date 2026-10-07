@@ -39,6 +39,7 @@ const reports = () => import('./pages/finance/ReportsPage')
 const ReportsPage = page(reports)
 const FinanceDashboardPage = page(reports, 'FinanceDashboardPage')
 const FinanceSettingsPage = page(() => import('./pages/finance/FinanceSettingsPage'))
+const FixedAssetsPage = page(() => import('./pages/finance/FixedAssetsPage'))
 const compliance = () => import('./pages/finance/CompliancePages')
 const WithholdingPage = page(compliance, 'WithholdingPage')
 const BankReconciliationPage = page(compliance, 'BankReconciliationPage')
@@ -126,6 +127,7 @@ export default function App() {
     ['/finance/contacts', () => <ContactsPage />],
     ['/finance/reports', () => <ReportsPage />],
     ['/finance/settings', () => <FinanceSettingsPage />],
+    ['/finance/assets', () => <FixedAssetsPage />],
     ['/finance/withholding', () => <WithholdingPage />],
     ['/finance/reconciliation', () => <BankReconciliationPage />],
     ['/inventory/stock', () => <StockPage />],

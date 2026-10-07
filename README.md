@@ -25,7 +25,7 @@ npm --prefix frontend run dev                          # UI on :5173 (proxies /a
   `travel-smoke.mjs` (travel & tours, 21 checks), `logistics-smoke.mjs` (logistics, 24 checks; the trial balance must balance), `ngo-smoke.mjs` (NGO, 33 checks; fund balances and
   the ledger must agree), `projects-smoke.mjs` (projects & services, 37 checks), `integrity-smoke.mjs` (concurrent double-clicks and
   half-finished operations, 9 checks), `security-smoke.mjs` (privilege escalation and sessions, 10 checks), `compliance-smoke.mjs` (withholding tax and bank
-  reconciliation, 20 checks).
+  reconciliation, 20 checks), `assets-smoke.mjs` (fixed assets and depreciation, 17 checks).
   GitHub Actions runs all of them on every push (`.github/workflows/ci.yml`).
 
 ## Concepts
@@ -95,6 +95,13 @@ Every create, update or delete is written to the audit log automatically (`AppDb
 - **Bank reconciliation:** import the bank's CSV export, auto-match by amount and date, match by hand, or post bank
   charges straight from a statement line. Deposits in transit and unpresented cheques are worked out; completion
   requires the statement and the books to agree.
+
+- **Fixed assets:** category defaults (method, useful life, accounts); register assets paid now, on a vendor bill, or
+  taken on with opening depreciation.
+  - Monthly depreciation run per entity: straight line or reducing balance, full-month convention, missed months
+    caught up, never below salvage value, one journal per run.
+  - Sale or scrapping posts the gain or loss (4920).
+  - Movement schedule for the IAS 16 note.
 
 Not yet: FBR POS/IRIS e-invoicing integration (needs FBR credentials), unrealized FX revaluation, budgets, and paying a
 foreign-currency invoice from a base-currency account.

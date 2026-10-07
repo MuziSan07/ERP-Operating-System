@@ -112,6 +112,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public DbSet<WhtDeposit> WhtDeposits => Set<WhtDeposit>();
     public DbSet<BankReconciliation> BankReconciliations => Set<BankReconciliation>();
     public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
+    public DbSet<AssetCategory> AssetCategories => Set<AssetCategory>();
+    public DbSet<FixedAsset> FixedAssets => Set<FixedAsset>();
+    public DbSet<DepreciationRun> DepreciationRuns => Set<DepreciationRun>();
 
     /// <summary>Read by the query filters on every query. Null (anonymous or platform admin) matches no tenant rows.</summary>
     private Guid? CurrentTenantId => currentUser.TenantId;
@@ -235,6 +238,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         b.Entity<WithholdingTaxRate>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
         b.Entity<WhtDeposit>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
         b.Entity<BankReconciliation>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+        b.Entity<AssetCategory>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+        b.Entity<FixedAsset>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+        b.Entity<DepreciationRun>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
     }
 
     public async Task LockAsync<T>(Guid id, CancellationToken ct = default) where T : class
