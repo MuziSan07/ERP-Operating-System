@@ -34,6 +34,18 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Files, email and reminders.
+var contentRoot = builder.Environment.ContentRootPath;
+string Rooted(string path) => Path.IsPathRooted(path) ? path : Path.Combine(contentRoot, path);
+builder.Services.AddSingleton<IFileStorage>(new Erpos.Infrastructure.Platform.LocalFileStorage(Rooted(builder.Configuration["Storage:Path"] ?? "App_Data/files")));
+// In development without an SMTP server, emails are written as .eml files to App_Data/mail so they can be opened and tested.
+if (builder.Environment.IsDevelopment() && string.IsNullOrWhiteSpace(builder.Configuration["Email:Smtp:Host"]) && string.IsNullOrWhiteSpace(builder.Configuration["Email:PickupDirectory"]))
+    builder.Configuration["Email:PickupDirectory"] = Rooted("App_Data/mail");
+builder.Services.AddSingleton<IEmailTransport, Erpos.Infrastructure.Platform.SmtpEmailTransport>();
+builder.Services.AddSingleton(new Erpos.Application.Services.AppOptions { PublicUrl = builder.Configuration["App:PublicUrl"] ?? "http://localhost:5173" });
+builder.Services.AddHostedService<OutboxDispatcher>();
+builder.Services.AddHostedService<ReminderScheduler>();
 builder.Services.AddAuthorization();
 builder.Services.AddExceptionHandler<ExceptionHandler>();
 builder.Services.AddProblemDetails();

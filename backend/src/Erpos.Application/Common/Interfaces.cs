@@ -14,6 +14,28 @@ public interface ICurrentUser
     bool IsSuperAdmin => UserType == Domain.Enums.UserType.SuperAdmin;
 }
 
+/// <summary>Where uploaded files live (local disk by default; swap for S3/Azure without touching callers).</summary>
+public interface IFileStorage
+{
+    Task SaveAsync(string key, Stream content, CancellationToken ct);
+    Task<Stream> OpenAsync(string key, CancellationToken ct);
+    Task DeleteAsync(string key, CancellationToken ct);
+}
+
+/// <summary>Delivers one email (SMTP, a pickup folder in development, or nothing when not configured).</summary>
+public interface IEmailTransport
+{
+    /// <summary>"smtp", "pickup" or "disabled".</summary>
+    string Mode { get; }
+    Task SendAsync(Domain.Entities.OutboxEmail message, CancellationToken ct);
+}
+
+/// <summary>Lets background jobs act for one organization: the tenant query filters use it when there is no signed-in user.</summary>
+public class BackgroundTenantContext
+{
+    public Guid? TenantId { get; set; }
+}
+
 public interface IAppDbContext
 {
     DbSet<Tenant> Tenants { get; }
@@ -131,6 +153,10 @@ public interface IAppDbContext
     DbSet<AssetCategory> AssetCategories { get; }
     DbSet<FixedAsset> FixedAssets { get; }
     DbSet<DepreciationRun> DepreciationRuns { get; }
+    DbSet<Attachment> Attachments { get; }
+    DbSet<OutboxEmail> OutboxEmails { get; }
+    DbSet<PasswordResetToken> PasswordResetTokens { get; }
+    DbSet<ReminderRun> ReminderRuns { get; }
     DbSet<MaintenanceRecord> MaintenanceRecords { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
