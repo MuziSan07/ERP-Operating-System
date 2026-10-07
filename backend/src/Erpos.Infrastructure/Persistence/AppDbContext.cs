@@ -115,6 +115,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
     public DbSet<AssetCategory> AssetCategories => Set<AssetCategory>();
     public DbSet<FixedAsset> FixedAssets => Set<FixedAsset>();
     public DbSet<DepreciationRun> DepreciationRuns => Set<DepreciationRun>();
+    public DbSet<Attachment> Attachments => Set<Attachment>();
+    public DbSet<OutboxEmail> OutboxEmails => Set<OutboxEmail>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<ReminderRun> ReminderRuns => Set<ReminderRun>();
 
     /// <summary>Read by the query filters on every query. Null (anonymous or platform admin) matches no tenant rows.</summary>
     private Guid? CurrentTenantId => currentUser.TenantId;
@@ -241,6 +245,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
         b.Entity<AssetCategory>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
         b.Entity<FixedAsset>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
         b.Entity<DepreciationRun>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
+        b.Entity<Attachment>().HasQueryFilter(e => !e.IsDeleted && e.TenantId == CurrentTenantId);
     }
 
     public async Task LockAsync<T>(Guid id, CancellationToken ct = default) where T : class
@@ -298,7 +303,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ICurrentUser c
                 }
             }
 
-            if (entry.Entity is AuditLog or RefreshToken or PayslipLine or LeaveApproval or JournalLine or NumberSequence or StockMovement or ShipmentEvent
+            if (entry.Entity is AuditLog or RefreshToken or OutboxEmail or PasswordResetToken or ReminderRun or PayslipLine or LeaveApproval or JournalLine or NumberSequence or StockMovement or ShipmentEvent
                 or StockLevel or StockBatchLevel) continue;
             audits.Add((entry, BuildAudit(entry, now)));
         }

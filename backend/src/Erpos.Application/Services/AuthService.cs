@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Erpos.Application.Services;
 
 public class AuthService(IAppDbContext db, IPasswordHasher hasher, ITokenService tokens, ICurrentUser currentUser,
-    IAccessService access)
+    IAccessService access, EmailService email)
 {
     private const int MaxFailedLogins = 5;
     private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
@@ -117,6 +117,47 @@ public class AuthService(IAppDbContext db, IPasswordHasher hasher, ITokenService
         Guard.Password(req.NewPassword);
         user.PasswordHash = hasher.Hash(req.NewPassword);
         await UserRules.RevokeSessionsAsync(db, user.Id, ct); // a thief holding an old session is logged out too
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Emails a one-hour reset link. Always answers the same way, whether or not the email exists (no account discovery);
+    /// at most three links per account per hour.
+    /// </summary>
+    public async Task ForgotPasswordAsync(string emailAddress, CancellationToken ct)
+    {
+        var address = (emailAddress ?? "").Trim().ToLowerInvariant();
+        var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Email == address && !u.IsDeleted && u.IsActive, ct);
+        if (user == null) return;
+        var now = DateTime.UtcNow;
+        if (await db.PasswordResetTokens.CountAsync(t => t.UserId == user.Id && t.CreatedAt > now.AddHours(-1), ct) >= 3) return;
+        var token = tokens.CreateRefreshToken();
+        db.PasswordResetTokens.Add(new PasswordResetToken { UserId = user.Id, TokenHash = tokens.HashToken(token), ExpiresAt = now.AddHours(1) });
+        var link = email.Link($"/reset-password?token={Uri.EscapeDataString(token)}");
+        email.Queue(user.Email, "Reset your ERPOS password",
+            $"<p>Dear {EmailService.Esc(user.FullName)},</p><p>Someone (hopefully you) asked to reset the password for {EmailService.Esc(user.Email)}.</p>" +
+            $"<p><a href=\"{EmailService.Esc(link)}\" style=\"background:#2f54eb;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none\">Choose a new password</a></p>" +
+            "<p>The link works once and expires in one hour. If you didn't ask for this, ignore this email — your password stays as it is.</p>",
+            "password-reset", user.TenantId);
+        await db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Sets a new password from a reset link; the link is single-use, and every existing session is ended.</summary>
+    public async Task ResetPasswordWithTokenAsync(string token, string newPassword, CancellationToken ct)
+    {
+        var hash = tokens.HashToken(token ?? "");
+        var now = DateTime.UtcNow;
+        var stored = await db.PasswordResetTokens.FirstOrDefaultAsync(t => t.TokenHash == hash, ct);
+        if (stored == null || stored.UsedAt != null || stored.ExpiresAt < now)
+            throw new ValidationException("This reset link is invalid or has expired. Ask for a new one.");
+        Guard.Password(newPassword);
+        var user = await db.Users.IgnoreQueryFilters().FirstOrDefaultAsync(u => u.Id == stored.UserId && !u.IsDeleted && u.IsActive, ct)
+                   ?? throw new ValidationException("This account is disabled.");
+        user.PasswordHash = hasher.Hash(newPassword);
+        user.FailedLoginCount = 0;
+        user.LockedUntil = null;
+        foreach (var t in await db.PasswordResetTokens.Where(t => t.UserId == user.Id && t.UsedAt == null).ToListAsync(ct)) t.UsedAt = now;
+        await UserRules.RevokeSessionsAsync(db, user.Id, ct);
         await db.SaveChangesAsync(ct);
     }
 

@@ -18,3 +18,6 @@ backend/src/Erpos.Api/appsettings.Development.json
 *.log
 .env.prod
 backups/
+
+# Uploaded files and development email pickup
+**/App_Data/

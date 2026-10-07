@@ -32,3 +32,5 @@ public enum UserType
     Manager = 4,
     Employee = 5
 }
+
+public enum EmailStatus { Pending = 1, Sent = 2, Failed = 3 }
