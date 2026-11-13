@@ -297,11 +297,11 @@ frontend/src
 
 ## Roadmap
 
-1. ✅ Core: tenants, entity tree, users, roles, permissions, overrides, modules, audit
-2. ✅ HR & Payroll: employees, departments, attendance, multi-step leave, salaries, Pakistani payroll
-3. ✅ Finance: IFRS chart, ledger, GST invoices/bills, multi-currency payments, payroll postings, statements
-4. ✅ Inventory & Procurement: weighted average, batches/expiry, transfers, PR → PO → GRN → three-way-matched bill
-5. Industry modules: ✅ Hotel · ✅ Travel & Tours · ✅ Logistics · ✅ NGO · ✅ Projects/Software services
+1. Core: tenants, entity tree, users, roles, permissions, overrides, modules, audit
+2. HR & Payroll: employees, departments, attendance, multi-step leave, salaries, Pakistani payroll
+3. Finance: IFRS chart, ledger, GST invoices/bills, multi-currency payments, payroll postings, statements
+4. Inventory & Procurement: weighted average, batches/expiry, transfers, PR → PO → GRN → three-way-matched bill
+5. Industry modules: Hotel · Travel & Tours · Logistics · NGO · Projects/Software services
 
 New modules plug into the existing catalog: add permissions in `PermissionCatalog.cs`, make tables `IEntityScoped`,
 and call `access.EnsureAsync("module.resource.action", entityId)` in services.
@@ -328,3 +328,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 - **Configuration** comes from environment variables (`ConnectionStrings__Default`, `Jwt__Key`, `Seed__*`,
   `Cors__Origins__0`, `AllowedHosts`, `Security__AuthRequestsPerMinute`). `.env`, `.env.prod` and
   `appsettings.Development.json` are local only and never committed.
+
+---
+
+## License
+
+Released under the MIT License. See the [LICENSE](LICENSE) file for details.
